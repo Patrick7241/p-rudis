@@ -1,0 +1,12 @@
+[package]
+name = "p-rudis"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bytes = "1.10.0"
+chrono = "0.4.40"
+fern = { version = "0.7.1", features = ["colored"] }
+tokio = { version = "1.44.0", features = ["full"] }
+log = "0.4.27"
+atoi = "0.2.1"
