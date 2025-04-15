@@ -11,8 +11,13 @@ impl Shutdown{
             is_shutdown:false
         }
     }
+    /// 判断是否接收到关闭信号
     pub fn is_shutdown(&self)->bool{
         self.is_shutdown
+    }
+    /// 设置关闭信号
+    pub fn trigger(&mut self){
+        self.is_shutdown=true
     }
 
 }

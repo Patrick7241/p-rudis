@@ -2,6 +2,7 @@ use std::io::Error;
 use std::process::id;
 use log::{error, info};
 use tokio::net::TcpListener;
+// use crate::commands::Command;
 use crate::connection::ConnectionHandler;
 use crate::db::{Db, DbHolder};
 use crate::shutdown::Shutdown;
@@ -85,8 +86,20 @@ impl Listener {
 impl Handler{
     async fn run(&mut self)->Result<(),Error>{
         while !self.shutdown.is_shutdown(){
-            if let Ok(Some(data))=self.connection.read_data().await{
-                println!("{:?}",data)
+            match self.connection.read_data().await {
+                Ok(Some(data))=>{
+                 // Command::get_command(data);
+                },
+                Ok(None)=>{
+                    info!("客户端断开连接");
+                    self.shutdown.trigger();
+                    break;
+                },
+                Err(err)=>{
+                    error!("读取数据出错: {}",err);
+                    self.shutdown.trigger();
+                    break;
+                }
             }
         }
         Ok(())

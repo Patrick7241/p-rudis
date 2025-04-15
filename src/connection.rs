@@ -30,7 +30,6 @@ impl ConnectionHandler {
             // 从流中读取数据到缓冲区
             match self.stream.read_buf(&mut self.buffer).await {
                 Ok(0) => {
-                   info!("客户端断开连接");
                     // 清理缓冲区
                     self.buffer.clear();
                     return Err(Box::new(Error::new(std::io::ErrorKind::Other, "客户端断开连接")))
@@ -44,8 +43,6 @@ impl ConnectionHandler {
                     }
                 }
                 Err(err) => {
-                    // 读取数据出错
-                    info!("读取数据出错: {}", err);
                     // 清理缓冲区
                     self.buffer.clear();
                     return Err(Box::new(err));
