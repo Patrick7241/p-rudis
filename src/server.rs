@@ -2,10 +2,11 @@ use std::io::Error;
 use std::process::id;
 use log::{error, info};
 use tokio::net::TcpListener;
-// use crate::commands::Command;
+use crate::parse;
 use crate::connection::ConnectionHandler;
 use crate::db::{Db, DbHolder};
 use crate::shutdown::Shutdown;
+use crate::dict::Command;
 
 #[derive(Debug)]
 pub struct Listener {
@@ -76,7 +77,7 @@ impl Listener {
             };
             tokio::spawn(async move {
                 if let Err(err)=handler.run().await{
-                    error!("处理连接出错: {}",err)
+                    error!("处理连接: {}",err)
                 }
             });
             }
@@ -84,24 +85,30 @@ impl Listener {
 }
 
 impl Handler{
-    async fn run(&mut self)->Result<(),Error>{
-        while !self.shutdown.is_shutdown(){
-            match self.connection.read_data().await {
-                Ok(Some(data))=>{
-                 // Command::get_command(data);
-                },
-                Ok(None)=>{
-                    info!("客户端断开连接");
-                    self.shutdown.trigger();
-                    break;
-                },
-                Err(err)=>{
-                    error!("读取数据出错: {}",err);
-                    self.shutdown.trigger();
-                    break;
-                }
+    async fn run(&mut self)->crate::Result<()>{
+        while !self.shutdown.is_shutdown() {
+            if let Err(err) = self.process_data().await {
+                // TODO 这里不应该暂停，应该发送错误信息回客户端，待修改
+                Err(err)?;
+                continue
             }
         }
+        Ok(())
+    }
+    /// 读取和解析数据
+    async fn process_data(&mut self) ->crate::Result<()> {
+        // 读取数据并处理错误
+        let data = self.connection.read_data().await?;
+        // 解析数据并处理错误
+        let mut parts =parse::Parse::new(data)?;
+        // 获取命令名称并转换为小写
+        let command_name=parts.next_string()?.to_lowercase();
+        // 查看命令是否存在于命令表中
+        if !Command::exists(&command_name){
+            self.connection.write_data(format!("不存在{}命令！", command_name)).await?;
+            return Err(Box::new(Error::new(std::io::ErrorKind::Other, "命令不存在")));
+        }
+
         Ok(())
     }
 

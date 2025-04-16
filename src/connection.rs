@@ -1,10 +1,10 @@
-//! 处理与客户端的连接
+//! 处理与客户端的连接，接收和返回消息
 
 use std::io::{Cursor, Error};
 use tokio::net::TcpStream;
 use bytes::{Buf, BytesMut};
 use log::{error, info};
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::frame::Frame;
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ impl ConnectionHandler {
     }
 
     /// 读取客户端发送的数据
-    pub async fn read_data(&mut self) -> p_rudis::Result<Option<Frame>> {
+    pub async fn read_data(&mut self) -> crate::Result<Option<Frame>> {
         loop {
             // 从流中读取数据到缓冲区
             match self.stream.read_buf(&mut self.buffer).await {
@@ -51,7 +51,7 @@ impl ConnectionHandler {
         }
     }
     /// 解析数据
-    fn parse_data(&mut self,n:usize)->p_rudis::Result<Option<Frame>>{
+    fn parse_data(&mut self,n:usize)->crate::Result<Option<Frame>>{
         let mut command=Cursor::new(&self.buffer[..n]);
 
         // 检查命令是否符合 resp 协议规范
@@ -73,6 +73,19 @@ impl ConnectionHandler {
                 Err(Box::new(Error::new(std::io::ErrorKind::Other, "命令不符合 RESP 协议规范")))
             }
         }
+    }
+
+    /// 发送回复消息到客户端
+    /// TODO 测试方便，先不解析resp，只传输字符串
+    pub async fn write_data(&mut self, response: String) -> crate::Result<()> {
+        info!("测试：非resp协议，发送回复消息到客户端: {}", response);
+        // 将字符串转换为字节数组
+        let bytes = response.as_bytes();
+        // 将字节数组写入流中
+        self.stream.write_all(bytes).await?;
+        // 刷新流，确保数据立即发送
+        self.stream.flush().await?;
+        Ok(())
     }
 
 
