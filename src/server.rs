@@ -89,8 +89,8 @@ impl Listener {
 impl Handler{
     async fn run(&mut self)->crate::Result<()>{
         while !self.shutdown.is_shutdown() {
+            // TODO 处理关闭后的逻辑，保存数据等
             if let Err(err) = self.process_data().await {
-                // TODO 这里不应该暂停，应该发送错误信息回客户端，待修改
                 Err(err)?;
                 continue
             }
@@ -112,14 +112,14 @@ impl Handler{
         }
         // 命令存在，获取并调用对应处理函数
        if let Some(command_fn) =Command::get_command_fn(&command_name){
-           // 传数据库，connection连接，Parse命令内容，返回错误信息
-           command_fn(self.db.clone(), self.connection.clone(), parts)?;
+           // 传数据库，connection连接，Parse命令内容，返回错误信息和发送会客户端的信息
+          let res= command_fn(&mut self.db.clone(),&mut parts)?;
+           self.connection.write_data(res).await?;
        }else{
            // 处理错误
+           self.connection.write_data(format!("不存在{}命令！", command_name)).await?;
+           return Err(Box::new(Error::new(std::io::ErrorKind::Other, "命令不存在")));
        }
-
-
-
         Ok(())
     }
 

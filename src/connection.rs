@@ -84,7 +84,7 @@ impl ConnectionHandler {
     /// 发送回复消息到客户端
     /// TODO 测试方便，先不解析resp，只传输字符串
     pub async fn write_data(&mut self, response: String) -> crate::Result<()> {
-        info!("测试：非resp协议，发送回复消息到客户端: {}", response);
+        info!("测试内容！！！：非resp协议，发送回复消息到客户端: {}", response);
         // 将字符串转换为字节数组
         let bytes = response.as_bytes();
         // 将字节数组写入流中

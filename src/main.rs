@@ -14,7 +14,6 @@ mod dict;
 mod parse;
 mod cmd;
 
-// TODO 待处理 避免使用.unwrap()，会触发panic，导致程序不可控崩溃
 // 目前只编写并启用服务端
 #[tokio::main]
 async fn main()->Result<()> {
