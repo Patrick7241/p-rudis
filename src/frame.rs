@@ -154,6 +154,77 @@ impl Frame{
             }
         }
     }
+
+    /// 将frame转化为resp格式的bytes，返回客户端
+    pub fn to_bytes(&self) -> Option<Vec<u8>> {
+        match self {
+            // 处理 Simple 类型
+            Frame::Simple(s) => {
+                let mut bytes = Vec::new();
+                bytes.push(b'+'); // +符号
+                bytes.extend_from_slice(s.as_bytes()); // 添加字符串内容
+                bytes.extend_from_slice(b"\r\n"); // 添加换行符
+                Some(bytes)
+            },
+
+            // 处理 Error 类型
+            Frame::Error(e) => {
+                let mut bytes = Vec::new();
+                bytes.push(b'-'); // -符号
+                bytes.extend_from_slice(e.as_bytes()); // 添加错误信息
+                bytes.extend_from_slice(b"\r\n"); // 添加换行符
+                Some(bytes)
+            },
+
+            // 处理 Integer 类型
+            Frame::Integer(i) => {
+                let mut bytes = Vec::new();
+                bytes.push(b':'); // :符号
+                bytes.extend_from_slice(i.to_string().as_bytes()); // 转换整数为字符串并添加
+                bytes.extend_from_slice(b"\r\n"); // 添加换行符
+                Some(bytes)
+            },
+
+            // 处理 Bulk 类型
+            Frame::Bulk(b) => {
+                let mut bytes = Vec::new();
+                bytes.push(b'$'); // $符号
+                bytes.extend_from_slice(b"\r\n"); // 先添加换行符
+                bytes.extend_from_slice(&b); // 添加实际的字节内容
+                bytes.extend_from_slice(b"\r\n"); // 结尾的换行符
+                Some(bytes)
+            },
+
+            // 处理 Null 类型
+            Frame::Null => {
+                let mut bytes = Vec::new();
+                bytes.push(b'$'); // $符号
+                bytes.push(b'-'); // -符号，表示空值
+                bytes.extend_from_slice(b"1"); // 长度为 1
+                bytes.extend_from_slice(b"\r\n"); // 换行符
+                Some(bytes)
+            },
+
+            // 处理 Array 类型
+            Frame::Array(arr) => {
+                let mut bytes = Vec::new();
+                bytes.push(b'*'); // *符号，表示数组类型
+                bytes.extend_from_slice(arr.len().to_string().as_bytes()); // 数组长度
+                bytes.extend_from_slice(b"\r\n"); // 换行符
+                for frame in arr {
+                    if let Some(mut frame_bytes) = frame.to_bytes() {
+                        bytes.append(&mut frame_bytes); // 将每个元素的字节追加到数组
+                    }
+                }
+                Some(bytes)
+            },
+
+            // 捕获其他未处理类型
+            _ => None,
+        }
+    }
+
+
 }
 
 /// 跳过指定数量的字节

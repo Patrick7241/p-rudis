@@ -4,11 +4,12 @@ use std::sync::{Arc};
 use log::{error, info};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
-use crate::{dict, parse};
+use crate::{dict, frame, parse};
 use crate::connection::ConnectionHandler;
 use crate::db::{Db, DbHolder};
 use crate::shutdown::Shutdown;
 use crate::dict::Command;
+use crate::frame::Frame;
 
 #[derive(Debug)]
 pub struct Listener {
@@ -107,19 +108,22 @@ impl Handler{
         let command_name=parts.next_string()?.to_lowercase();
         // 查看命令是否存在于命令表中
         if !Command::exists(&command_name){
-            self.connection.write_data(format!("不存在{}命令！", command_name)).await?;
-            return Err(Box::new(Error::new(std::io::ErrorKind::Other, "命令不存在")));
+            self.connection
+                .write_data(Frame::Error(format!("ERR unknown command '{}'", command_name)))
+                .await?;
+        }else {
+            // 命令存在，获取并调用对应处理函数
+            if let Some(command_fn) = Command::get_command_fn(&command_name) {
+                // 传数据库，connection连接，Parse命令内容，返回错误信息和发送会客户端的信息
+                let res = command_fn(&mut self.db.clone(), &mut parts)?;
+                self.connection.write_data(res).await?;
+            } else {
+                // 处理错误
+                self.connection
+                    .write_data(Frame::Error(format!("ERR unknown command '{}'", command_name)))
+                    .await?;
+            }
         }
-        // 命令存在，获取并调用对应处理函数
-       if let Some(command_fn) =Command::get_command_fn(&command_name){
-           // 传数据库，connection连接，Parse命令内容，返回错误信息和发送会客户端的信息
-          let res= command_fn(&mut self.db.clone(),&mut parts)?;
-           self.connection.write_data(res).await?;
-       }else{
-           // 处理错误
-           self.connection.write_data(format!("不存在{}命令！", command_name)).await?;
-           return Err(Box::new(Error::new(std::io::ErrorKind::Other, "命令不存在")));
-       }
         Ok(())
     }
 

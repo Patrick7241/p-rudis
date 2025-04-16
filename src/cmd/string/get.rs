@@ -1,5 +1,6 @@
 use std::io::Error;
 use crate::db::{Db, DbType};
+use crate::frame::Frame;
 use crate::parse::Parse;
 
 #[derive(Debug)]
@@ -12,14 +13,18 @@ impl Get {
     pub fn get_command(
         db: &mut Db,
         parse: &mut Parse,
-    ) -> crate::Result<String> {
+    ) -> crate::Result<Frame> {
         match Self::parse_command(parse) {
             Ok(get) => match db.get(&get.key) {
-                Some(DbType::String(s)) => Ok(s.clone()), // 避免不必要的 `to_string()` 调用
-                Some(_) => Ok("类型转换失败".to_string()),
-                None => Ok("nil".to_string()),
+                // 返回Bulk类型
+                Some(DbType::String(s)) => Ok(Frame::Bulk(s.clone().into_bytes())),
+                // 返回错误类型
+                Some(_) => Ok(Frame::Error("ERR type conversion failed".to_string())),
+                // 如果没有找到值，返回Null
+                None => Ok(Frame::Null),
             },
-            Err(err) => Ok(err.to_string()),
+            // 返回错误类型
+            Err(err) => Ok(Frame::Error(err.to_string())),
         }
     }
 
@@ -29,7 +34,7 @@ impl Get {
         if key.is_empty() {
             return Err(Box::new(Error::new(
                 std::io::ErrorKind::InvalidInput,
-                "'get' 命令需要至少一个参数",
+                "ERR wrong number of arguments for 'get' command",
             )));
         }
 

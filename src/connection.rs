@@ -82,15 +82,14 @@ impl ConnectionHandler {
     }
 
     /// 发送回复消息到客户端
-    /// TODO 测试方便，先不解析resp，只传输字符串
-    pub async fn write_data(&mut self, response: String) -> crate::Result<()> {
-        info!("测试内容！！！：非resp协议，发送回复消息到客户端: {}", response);
+    pub async fn write_data(&mut self, response: Frame) -> crate::Result<()> {
         // 将字符串转换为字节数组
-        let bytes = response.as_bytes();
-        // 将字节数组写入流中
-        self.stream.lock().await.write_all(bytes).await?;
-        // 刷新流，确保数据立即发送
-        self.stream.lock().await.flush().await?;
+        if let Some(bytes) = response.to_bytes(){
+            // 将字节数组写入流中
+            self.stream.lock().await.write_all(&bytes).await?;
+            // 刷新流，确保数据立即发送
+            self.stream.lock().await.flush().await?;
+        }
         Ok(())
     }
 }

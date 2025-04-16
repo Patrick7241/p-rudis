@@ -6,6 +6,7 @@ use log::error;
 use crate::commands::COMMANDS;
 use crate::connection::ConnectionHandler;
 use crate::db::Db;
+use crate::frame::Frame;
 use crate::parse::Parse;
 
 /// COMMAND_TABLE 存储所有命令的哈希表
@@ -17,7 +18,7 @@ lazy_static! {
 #[derive(Clone)]
 pub struct Command {
     pub name: String,
-    pub command_fn:Arc<dyn Fn(&mut Db,&mut Parse) -> crate::Result<String>+Send + Sync + 'static>,
+    pub command_fn:Arc<dyn Fn(&mut Db,&mut Parse) -> crate::Result<Frame>+Send + Sync + 'static>,
     pub time_complexity: String,
     pub description: String,
 }
@@ -50,7 +51,7 @@ impl Command {
         }
     }
     /// 获取命令对应的处理函数
-    pub fn get_command_fn(name: &str) -> Option<Arc<dyn Fn(&mut Db,&mut Parse) -> crate::Result<String> + Send + Sync + 'static>> {
+    pub fn get_command_fn(name: &str) -> Option<Arc<dyn Fn(&mut Db,&mut Parse) -> crate::Result<Frame> + Send + Sync + 'static>> {
         if name.is_empty() {
             return None;
         }
