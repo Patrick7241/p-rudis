@@ -1,8 +1,10 @@
 use std::io::Error;
 use std::process::id;
+use std::sync::{Arc};
 use log::{error, info};
-use tokio::net::TcpListener;
-use crate::parse;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::Mutex;
+use crate::{dict, parse};
 use crate::connection::ConnectionHandler;
 use crate::db::{Db, DbHolder};
 use crate::shutdown::Shutdown;
@@ -72,7 +74,7 @@ impl Listener {
             // 处理连接
             let mut handler=Handler{
                 db:self.db_holder.clone(),
-                connection:ConnectionHandler::new(socket),
+                connection:ConnectionHandler::new(Arc::new(Mutex::new(socket))),
                 shutdown:Shutdown::new()
             };
             tokio::spawn(async move {
@@ -108,6 +110,15 @@ impl Handler{
             self.connection.write_data(format!("不存在{}命令！", command_name)).await?;
             return Err(Box::new(Error::new(std::io::ErrorKind::Other, "命令不存在")));
         }
+        // 命令存在，获取并调用对应处理函数
+       if let Some(command_fn) =Command::get_command_fn(&command_name){
+           // 传数据库，connection连接，Parse命令内容，返回错误信息
+           command_fn(self.db.clone(), self.connection.clone(), parts)?;
+       }else{
+           // 处理错误
+       }
+
+
 
         Ok(())
     }

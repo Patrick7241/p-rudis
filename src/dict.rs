@@ -1,8 +1,10 @@
 use lazy_static::lazy_static;
-use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use crate::commands::COMMANDS;
+use crate::connection::ConnectionHandler;
+use crate::db::Db;
+use crate::parse::Parse;
 
 /// COMMAND_TABLE 存储所有命令的哈希表
 lazy_static! {
@@ -12,7 +14,8 @@ lazy_static! {
 #[derive(Clone)]
 pub struct Command {
     pub name: String,
-    pub command_fn: Arc<dyn Fn(Option<Box<dyn Any>>) -> Option<Box<dyn Any>> + Send + Sync + 'static>,
+    // pub command_fn: Arc<dyn Fn(Option<Box<dyn Any>>) -> Option<Box<dyn Any>> + Send + Sync + 'static>,
+    pub command_fn:Arc<dyn Fn(Db, ConnectionHandler, Parse) -> crate::Result<()>+Send + Sync + 'static>,
     pub time_complexity: String,
     pub description: String,
 }
@@ -36,6 +39,17 @@ impl Command {
             let command = make_command!(name, description, time_complexity, command_fn);
             command_map.insert(command.name.clone(), command);
         }
+    }
+    /// 获取命令对应的处理函数
+    pub fn get_command_fn(name: &str) -> Option<Arc<dyn Fn(Db, ConnectionHandler, Parse) -> crate::Result<()>+Send + Sync + 'static>> {
+        if name.is_empty() {
+            return None;
+        }
+        // 获取读锁并获取命令
+        let command_map = COMMAND_TABLE.read().unwrap();
+        let command = command_map.get(&name.to_lowercase());
+        // 如果命令存在，返回命令的命令处理函数
+        command.map(|cmd| cmd.command_fn.clone())
     }
     /// 获取命令详情
     pub fn get_command_detail(name: &str) -> Option<Command> {

@@ -1,23 +1,25 @@
 //! 处理与客户端的连接，接收和返回消息
 
 use std::io::{Cursor, Error};
+use std::sync::{Arc};
 use tokio::net::TcpStream;
 use bytes::{Buf, BytesMut};
 use log::{error, info};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::sync::Mutex;
 use crate::frame::Frame;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ConnectionHandler {
     /// TCP连接对象
-    stream: TcpStream,
+    stream: Arc<Mutex<TcpStream>>,
     /// 缓冲区
     buffer: BytesMut,
 }
 
 impl ConnectionHandler {
     /// 定义一个连接，设置 1024 字节大小缓冲区，根据需要可适当扩容
-    pub fn new(stream: TcpStream) -> Self {
+    pub fn new(stream:  Arc<Mutex<TcpStream>>) -> Self {
         ConnectionHandler {
             stream,
             buffer: BytesMut::with_capacity(1024),
@@ -27,25 +29,29 @@ impl ConnectionHandler {
     /// 读取客户端发送的数据
     pub async fn read_data(&mut self) -> crate::Result<Option<Frame>> {
         loop {
-            // 从流中读取数据到缓冲区
-            match self.stream.read_buf(&mut self.buffer).await {
-                Ok(0) => {
-                    // 清理缓冲区
-                    self.buffer.clear();
-                    return Err(Box::new(Error::new(std::io::ErrorKind::Other, "客户端断开连接")))
-                }
-                Ok(n) => {
-                    if n > 0 {
-                        // 解析读取到的数据
-                       if let Some(data)= self.parse_data(n)?{
-                           return Ok(Some(data))
-                       }
+            // 限制 `MutexGuard` 的作用域，避免它在调用 `parse_data` 时仍然存活
+            // 在单独的块中处理锁的获取和释放，解决 MutexGuard 锁住变量导致后面不能可变借用的问题
+            let n = {
+                let mut stream = self.stream.lock().await;
+                // 从流中读取数据到缓冲区
+                match stream.read_buf(&mut self.buffer).await {
+                    Ok(0) => {
+                        // 清理缓冲区
+                        self.buffer.clear();
+                        return Err(Box::new(Error::new(std::io::ErrorKind::Other, "客户端断开连接")));
+                    }
+                    Ok(n) => n,
+                    Err(err) => {
+                        // 清理缓冲区
+                        self.buffer.clear();
+                        return Err(Box::new(err));
                     }
                 }
-                Err(err) => {
-                    // 清理缓冲区
-                    self.buffer.clear();
-                    return Err(Box::new(err));
+            };
+
+            if n > 0 {
+                if let Some(data) = self.parse_data(n)? {
+                    return Ok(Some(data));
                 }
             }
         }
@@ -82,9 +88,9 @@ impl ConnectionHandler {
         // 将字符串转换为字节数组
         let bytes = response.as_bytes();
         // 将字节数组写入流中
-        self.stream.write_all(bytes).await?;
+        self.stream.lock().await.write_all(bytes).await?;
         // 刷新流，确保数据立即发送
-        self.stream.flush().await?;
+        self.stream.lock().await.flush().await?;
         Ok(())
     }
 
