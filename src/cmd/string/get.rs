@@ -1,7 +1,9 @@
 use std::io::Error;
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
-use crate::parse::Parse;
+use crate::parse::{Parse, ParseError};
+
+/// string类型 get命令
 
 #[derive(Debug)]
 pub struct Get {
@@ -9,7 +11,6 @@ pub struct Get {
 }
 
 impl Get {
-    /// get命令
     pub fn get_command(
         db: &mut Db,
         parse: &mut Parse,
@@ -24,20 +25,17 @@ impl Get {
                 None => Ok(Frame::Null),
             },
             // 返回错误类型
-            Err(err) => Ok(Frame::Error(err.to_string())),
+            Err(_) =>{
+                Ok(Frame::Error("ERR wrong number of arguments for 'get' command".to_string()))
+            }
         }
     }
 
     /// 验证命令是否合法，并获取命令参数
     fn parse_command(parse: &mut Parse) -> crate::Result<Self> {
         let key = parse.next_string()?.to_lowercase();
-        if key.is_empty() {
-            return Err(Box::new(Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "ERR wrong number of arguments for 'get' command",
-            )));
-        }
 
         Ok(Get { key })
     }
+
 }
