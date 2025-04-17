@@ -3,7 +3,7 @@ use std::process::id;
 use std::sync::{Arc};
 use log::{error, info};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::Mutex;
+use std::sync::Mutex;
 use crate::{dict, frame, parse};
 use crate::connection::ConnectionHandler;
 use crate::db::{Db, DbHolder};
@@ -22,7 +22,7 @@ pub struct Listener {
 #[derive(Debug)]
 pub struct Handler{
     /// 存储数据库
-    db:Db,
+    db:Arc<Mutex<Db>>,
     /// 客户端连接
     connection:ConnectionHandler,
     /// 关闭信号
@@ -74,8 +74,8 @@ impl Listener {
             info!("接收客户端连接: {}",addr);
             // 处理连接
             let mut handler=Handler{
-                db:self.db_holder.clone(),
-                connection:ConnectionHandler::new(Arc::new(Mutex::new(socket))),
+                db:self.db_holder.get_db(),
+                connection:ConnectionHandler::new(Arc::new(tokio::sync::Mutex::new(socket))),
                 shutdown:Shutdown::new()
             };
             tokio::spawn(async move {
@@ -115,7 +115,7 @@ impl Handler{
             // 命令存在，获取并调用对应处理函数
             if let Some(command_fn) = Command::get_command_fn(&command_name) {
                 // 传数据库，connection连接，Parse命令内容，返回错误信息和发送会客户端的信息
-                let res = command_fn(&mut self.db.clone(), &mut parts)?;
+                let res = command_fn(&mut self.db, &mut parts)?;
                 self.connection.write_data(res).await?;
             } else {
                 // 处理错误

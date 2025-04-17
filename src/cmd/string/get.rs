@@ -1,7 +1,8 @@
-use std::io::Error;
+use std::sync::Arc;
+use std::sync::Mutex;
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
-use crate::parse::{Parse, ParseError};
+use crate::parse::Parse;
 
 /// string类型 get命令
 
@@ -12,13 +13,15 @@ pub struct Get {
 
 impl Get {
     pub fn get_command(
-        db: &mut Db,
+        db: &mut Arc<Mutex<Db>>,
         parse: &mut Parse,
     ) -> crate::Result<Frame> {
         match Self::parse_command(parse) {
-            Ok(get) => match db.get(&get.key) {
+            Ok(get) => match db.lock().unwrap().get(&get.key) {
                 // 返回Bulk类型
-                Some(DbType::String(s)) => Ok(Frame::Bulk(s.clone().into_bytes())),
+                Some(DbType::String(s)) =>{
+                    Ok(Frame::Bulk(s.clone().into_bytes()))
+                }
                 // 返回错误类型
                 Some(_) => Ok(Frame::Error("ERR type conversion failed".to_string())),
                 // 如果没有找到值，返回Null
@@ -33,7 +36,7 @@ impl Get {
 
     /// 验证命令是否合法，并获取命令参数
     fn parse_command(parse: &mut Parse) -> crate::Result<Self> {
-        let key = parse.next_string()?.to_lowercase();
+        let key = parse.next_string()?;
 
         Ok(Get { key })
     }

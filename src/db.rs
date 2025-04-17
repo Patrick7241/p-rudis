@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::sync::Mutex;
 
 #[derive(Debug)]
 pub struct DbHolder {
-    db: Db,
+    db: Arc<Mutex<Db>>,
 }
 
 #[derive(Clone, Debug)]
@@ -14,7 +16,7 @@ pub struct Db {
 #[derive(Clone, Debug)]
 pub struct DbEntry {
     value: DbType,
-    expiration: Option<u64>,  // 存储过期时间，单位是秒
+    expiration: Option<u64>,  // 存储过期时间，单位 毫秒
 }
 
 #[derive(Clone, Debug)]
@@ -29,12 +31,12 @@ pub enum DbType {
 
 impl DbHolder {
     pub fn new() -> Self {
-        DbHolder {
-            db: Db::new(),
+        Self {
+            db: Arc::new(Mutex::new(Db::new())),
         }
     }
 
-    pub fn clone(&self) -> Db {
+    pub fn get_db(&self) -> Arc<Mutex<Db>> {
         self.db.clone()
     }
 }
@@ -49,13 +51,15 @@ impl Db {
         db
     }
 
-    /// 设置键值并可指定过期时间（单位：秒）
-    pub fn set(&mut self, key: &str, value: DbType, expiration: Option<u64>) {
-        let expiration_time = expiration.map(|exp| {
-            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-            now.as_secs() + exp  // 设置过期时间
+    /// 设置键值并可指定过期时间（单位：毫秒）
+    pub fn set(&mut self, key: &str, value: DbType, expiration_ms: Option<u64>) {
+        let expiration_time = expiration_ms.map(|ms| {
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap();
+            // 直接计算毫秒级过期时间戳
+            now.as_millis() as u64 + ms
         });
-
         let entry = DbEntry {
             value,
             expiration: expiration_time,
@@ -67,6 +71,8 @@ impl Db {
     /// 获取键值，如果已过期则返回 None、
     /// 惰性删除（Lazy Deletion）
     pub fn get(&mut self, key: &str) -> Option<&DbType> {
+       let a= self.storage.get(key);
+        println!("value :{:?}",a);
         let expired = self.storage.get(key)
             .map_or(false, |entry| self.is_expired(entry));
         if expired {
@@ -76,13 +82,30 @@ impl Db {
         self.storage.get(key).map(|entry| &entry.value)
     }
 
-    /// 检查条目是否过期
+    /// 检查键值是否存在
+    pub fn exists(&mut self, key: &str) -> bool {
+        match self.storage.get(key) {
+            Some(entry) if !self.is_expired(entry) => true,
+            Some(_) => {
+                self.storage.remove(key);
+                false
+            }
+            None => false,
+        }
+    }
+
+
+    /// 检查键值是否过期
     fn is_expired(&self, entry: &DbEntry) -> bool {
         if let Some(expiration) = entry.expiration {
-            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-            return now > expiration;
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64; // 毫秒时间戳
+            now >= expiration
+        } else {
+            false
         }
-        false
     }
 }
 

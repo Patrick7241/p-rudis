@@ -186,14 +186,14 @@ impl Frame{
             },
 
             // 处理 Bulk 类型
-            Frame::Bulk(b) => {
-                let mut bytes = Vec::new();
-                bytes.push(b'$'); // $符号
-                bytes.extend_from_slice(b"\r\n"); // 先添加换行符
-                bytes.extend_from_slice(&b); // 添加实际的字节内容
-                bytes.extend_from_slice(b"\r\n"); // 结尾的换行符
-                Some(bytes)
-            },
+            // 格式: $<长度>\r\n<数据>\r\n
+            Frame::Bulk(data) => {
+                let mut frame = Vec::new();
+                frame.extend_from_slice(format!("${}\r\n", data.len()).as_bytes());
+                frame.extend_from_slice(data);
+                frame.extend_from_slice(b"\r\n");
+                Some(frame)
+            }
 
             // 处理 Null 类型
             Frame::Null => {
