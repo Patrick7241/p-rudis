@@ -13,7 +13,7 @@ pub enum Frame{
     /// 错误类型，如 -ERR unknown command
     Error(String),
     /// 整数类型，如 :1 或 :1000 等
-    Integer(u64),
+    Integer(i64),
     /// 大容量字符串，如 $5\r\nhello\r\n
     Bulk(Vec<u8>),
     /// 空值或 null，通常在某些命令的返回值为空时出现
@@ -252,10 +252,10 @@ fn peek_bytes(command :&mut Cursor<&[u8]>)->Result<u8,Error>{
 }
 
 /// 获取*后面的数据，并判断是否为数字
-fn get_number(command: &mut Cursor<&[u8]>)->Result<u64,Error>{
+fn get_number(command: &mut Cursor<&[u8]>)->Result<i64,Error>{
     let line = get_line(command)?;
     // 尝试将字节切片解析为数字
-    match atoi::<u64>(line) {
+    match atoi::<i64>(line) {
         Some(num) => {
             Ok(num)
         }

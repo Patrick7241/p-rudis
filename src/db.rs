@@ -72,7 +72,6 @@ impl Db {
     /// 惰性删除（Lazy Deletion）
     pub fn get(&mut self, key: &str) -> Option<&DbType> {
        let a= self.storage.get(key);
-        println!("value :{:?}",a);
         let expired = self.storage.get(key)
             .map_or(false, |entry| self.is_expired(entry));
         if expired {
@@ -80,6 +79,14 @@ impl Db {
             return None;
         }
         self.storage.get(key).map(|entry| &entry.value)
+    }
+
+    /// 删除键值
+    pub fn del(&mut self, key: &str) -> bool {
+        if !self.exists(key){
+            return false;
+        }
+        self.storage.remove(key).is_some()
     }
 
     /// 检查键值是否存在
@@ -93,7 +100,6 @@ impl Db {
             None => false,
         }
     }
-
 
     /// 检查键值是否过期
     fn is_expired(&self, entry: &DbEntry) -> bool {
