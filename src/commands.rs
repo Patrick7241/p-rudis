@@ -10,6 +10,10 @@ use crate::parse::Parse;
 
 /// 定义命令元数据，后续命令都可以添加到这里
 pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) -> crate::Result<Frame>)] = &[
+    // ping
+    ("ping", "测试连接是否正常。", "O(1)", cmd::ping::Ping::ping_command),
+    // echo
+    ("echo", "返回指定的字符串。", "O(N)", cmd::echo::Echo::echo_command),
     // string
     ("set", "设置指定键的值。", "O(1)", cmd::string::set::Set::set_command),
     ("get", "返回指定键的字符串值。", "O(1)", cmd::string::get::Get::get_command),

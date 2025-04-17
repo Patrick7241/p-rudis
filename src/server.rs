@@ -29,20 +29,22 @@ pub struct Handler{
     shutdown:Shutdown
 }
 
-fn go(){
-    let pid = id();
+// TODO port硬编码待修改
+fn go() {
+    let pid = std::process::id();
     let welcome = format!(
         r#"
-        / \__
+        / \__                 欢迎使用p-rudis
        (    @\___
        /         O
-      /   (_____ /
-     /_____/   U
-    {}
-    PID: {}
-    "#,"欢迎使用p-rudis",pid);
+      /   (_____ /            PORT: 6379
+     /_____/   U              PID: {}
+    "#,
+        pid
+    );
     println!("{}", welcome);
 }
+
 
 
 /// 启动 p-rudis 服务端
