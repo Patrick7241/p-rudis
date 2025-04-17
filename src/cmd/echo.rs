@@ -13,7 +13,7 @@ impl Echo{
     pub fn echo_command(_db: &mut Arc<Mutex<Db>>, parse: &mut Parse) -> crate::Result<Frame> {
         match Echo::parse_command(parse) {
             Ok(echo) => {
-                Ok(Frame::Simple(echo.message))
+                Ok(Frame::Bulk(echo.message.into_bytes()))
             }
             Err(_) => {
                 Ok(Frame::Error("ERR wrong number of arguments for 'echo' command".to_string()))

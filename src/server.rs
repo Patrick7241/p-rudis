@@ -31,7 +31,7 @@ pub struct Handler{
 
 // TODO port硬编码待修改
 fn go() {
-    let pid = std::process::id();
+    let pid = id();
     let welcome = format!(
         r#"
         / \__                 欢迎使用p-rudis
