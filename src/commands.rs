@@ -33,7 +33,7 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("hdel", "删除哈希表中指定字段。", "O(1)", cmd::hash::hdel::Hdel::hdel_command),
     ("hgetall", "获取哈希表中的所有字段和值。", "O(N)", cmd::hash::hgetall::Hgetall::hgetall_command),
     ("hmset", "设置哈希表中多个字段的值。", "O(N)", cmd::hash::hmset::Hmset::hmset_command),
-    // ("hmget", "获取哈希表中多个字段的值。", "O(N)", cmd::hash::hmget::Hmget::hmget_command),
+    ("hmget", "获取哈希表中多个字段的值。", "O(N)", cmd::hash::hmget::Hmget::hmget_command),
     // ("hkeys", "获取哈希表中的所有字段。", "O(N)", cmd::hash::hkeys::Hkeys::hkeys_command),
     // ("hvals", "获取哈希表中的所有值。", "O(N)", cmd::hash::hvals::Hvals::hvals_command),
     // ("hlen", "获取哈希表中的字段数量。", "O(1)", cmd::hash::hlen::Hlen::hlen_command),
