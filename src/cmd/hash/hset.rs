@@ -23,10 +23,11 @@ impl Hset {
         match Hset::parse_command(parse) {
             Ok(hset) => {
                 let mut db = db.lock().unwrap();
-                match db.get(&hset.key) {
+                match db.get_dbtype_mut(&hset.key) {
                     Some(DbType::Hash(hash)) => {
                         // 如果哈希表中已经包含该字段，覆盖其值
-                        let is_new_field = hash.clone().insert(hset.field, hset.value).is_none();
+                        let is_new_field = hash.insert(hset.field.clone(), hset.value).is_none();
+                        println!("值是： {:?}",hash.get(&hset.field));
                         if is_new_field {
                             // 如果字段是新添加的，返回 1
                             Ok(Frame::Integer(1))

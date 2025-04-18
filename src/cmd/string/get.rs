@@ -23,7 +23,7 @@ impl Get {
                     Ok(Frame::Bulk(s.clone().into_bytes()))
                 }
                 // 返回错误类型
-                Some(_) => Ok(Frame::Error("ERR type conversion failed".to_string())),
+                Some(_) => Ok(Frame::Error("WRONGTYPE Operation against a key holding the wrong kind of value".to_string())),
                 // 如果没有找到值，返回Null
                 None => Ok(Frame::Null),
             },

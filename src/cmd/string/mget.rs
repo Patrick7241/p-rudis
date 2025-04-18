@@ -28,7 +28,10 @@ impl Mget {
                         Some(DbType::String(value)) => {
                             result.push(Frame::Simple(value.to_string()));
                         }
-                        _ => {
+                        Some(_)=>{
+                            result.push(Frame::Error("WRONGTYPE Operation against a key holding the wrong kind of value".to_string()))
+                        }
+                        None => {
                             result.push(Frame::Null); // 键不存在或值非字符串
                         }
                     }

@@ -29,7 +29,7 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("msetnx", "只有在所有指定键都不存在的情况下，才会设置它们的值。", "O(N)", cmd::string::msetnx::Msetnx::msetnx_command),
     // hash
     ("hset", "设置哈希表中指定字段的值。", "O(1)", cmd::hash::hset::Hset::hset_command),
-    // ("hget", "获取哈希表中指定字段的值。", "O(1)", cmd::hash::hget::Hget::hget_command),
+    ("hget", "获取哈希表中指定字段的值。", "O(1)", cmd::hash::hget::Hget::hget_command),
     // ("hdel", "删除哈希表中指定字段。", "O(1)", cmd::hash::hdel::Hdel::hdel_command),
     // ("hgetall", "获取哈希表中的所有字段和值。", "O(N)", cmd::hash::hgetall::Hgetall::hgetall_command),
     // ("hmset", "设置哈希表中多个字段的值。", "O(N)", cmd::hash::hmset::Hmset::hmset_command),

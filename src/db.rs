@@ -51,6 +51,14 @@ impl Db {
         db
     }
 
+    /// 获取DbType的可变引用
+    pub fn get_dbtype_mut(&mut self,key:&str)->Option<&mut DbType>{
+        match self.storage.get_mut(key){
+            Some(entry)=>Some(&mut entry.value),
+            None=>None
+        }
+    }
+
     /// 设置键值并可指定过期时间（单位：毫秒）
     pub fn set(&mut self, key: &str, value: DbType, expiration_ms: Option<u64>) {
         let expiration_time = expiration_ms.map(|ms| {
@@ -71,7 +79,6 @@ impl Db {
     /// 获取键值，如果已过期则返回 None、
     /// 惰性删除（Lazy Deletion）
     pub fn get(&mut self, key: &str) -> Option<&DbType> {
-       let a= self.storage.get(key);
         let expired = self.storage.get(key)
             .map_or(false, |entry| self.is_expired(entry));
         if expired {
