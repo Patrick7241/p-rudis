@@ -6,7 +6,7 @@ use atoi::atoi;
 use std::fmt;
 
 /// RESP 协议的数据类型
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Frame{
     /// 简单字符串，如 +OK 或 +PONG 等简单回复
     Simple(String),

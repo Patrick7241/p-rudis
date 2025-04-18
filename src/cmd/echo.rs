@@ -1,3 +1,4 @@
+use std::io::Error;
 use std::sync::{Arc, Mutex};
 use crate::db::Db;
 use crate::frame::Frame;
@@ -22,6 +23,9 @@ impl Echo{
     }
 
     fn parse_command(parse: &mut Parse) -> crate::Result<Self>{
+        if parse.args_number()?!=1{
+            return Err(Box::new(Error::new(std::io::ErrorKind::Other,"ERR wrong number of arguments for 'echo' command".to_string())));
+        }
         let message = parse.next_string()?;
         Ok(Echo{message})
     }

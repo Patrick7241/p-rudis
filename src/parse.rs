@@ -63,4 +63,26 @@ impl Parse{
         }
     }
 
+    /// 获取命令的参数个数（除指令外的命令数量）
+    pub fn args_number(&mut self) -> crate::Result<usize> {
+        let mut count = 0;
+
+        let mut parts = self.parts.clone();
+
+        // 参数计数
+        while let Some(frame) = parts.next() {
+            match frame {
+                Frame::Simple(_) | Frame::Bulk(_) => {
+                    count += 1;
+                },
+                _ => break,  // 如果遇到非参数类型，结束计数
+            }
+        }
+
+        Ok(count)
+    }
+
+
+
+
 }
