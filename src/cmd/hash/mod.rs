@@ -4,3 +4,4 @@ pub mod hdel;
 pub mod hgetall;
 pub mod hmset;
 pub mod hmget;
+pub mod hkeys;
