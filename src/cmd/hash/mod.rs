@@ -7,3 +7,4 @@ pub mod hmget;
 pub mod hkeys;
 pub mod hvals;
 pub mod hlen;
+pub mod hexists;
