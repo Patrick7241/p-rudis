@@ -15,14 +15,6 @@ lazy_static! {
     static ref COMMAND_TABLE: Arc<RwLock<HashMap<String, Command>>> = Arc::new(RwLock::new(HashMap::new()));
 }
 
-/// Command 命令细节
-#[derive(Clone)]
-pub struct Command {
-    pub name: String,
-    pub command_fn:Arc<dyn Fn(&mut Arc<Mutex<Db>>,&mut Parse) -> crate::Result<Frame>+Send + Sync + 'static>,
-    pub time_complexity: String,
-    pub description: String,
-}
 /// 创建命令的宏
 macro_rules! make_command {
     ($name:expr, $description:expr, $complexity:expr, $command_fn:expr) => {
@@ -34,6 +26,17 @@ macro_rules! make_command {
         }
     };
 }
+
+
+/// Command 命令细节
+#[derive(Clone)]
+pub struct Command {
+    pub name: String,
+    pub command_fn:Arc<dyn Fn(&mut Arc<Mutex<Db>>,&mut Parse) -> crate::Result<Frame>+Send + Sync + 'static>,
+    pub time_complexity: String,
+    pub description: String,
+}
+
 impl Command {
     /// 加载所有命令到内存命令表中
     pub fn load_commands() {

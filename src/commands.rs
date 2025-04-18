@@ -36,7 +36,7 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("hmget", "获取哈希表中多个字段的值。", "O(N)", cmd::hash::hmget::Hmget::hmget_command),
     ("hkeys", "获取哈希表中的所有字段。", "O(N)", cmd::hash::hkeys::Hkeys::hkeys_command),
     ("hvals", "获取哈希表中的所有值。", "O(N)", cmd::hash::hvals::Hvals::hvals_command),
-    // ("hlen", "获取哈希表中的字段数量。", "O(1)", cmd::hash::hlen::Hlen::hlen_command),
+    ("hlen", "获取哈希表中的字段数量。", "O(1)", cmd::hash::hlen::Hlen::hlen_command),
     // ("hexists", "检查哈希表中指定字段是否存在。", "O(1)", cmd::hash::hexists::Hexists::hexists_command),
 
 ];
