@@ -8,3 +8,4 @@ pub mod hkeys;
 pub mod hvals;
 pub mod hlen;
 pub mod hexists;
+pub mod hsetnx;
