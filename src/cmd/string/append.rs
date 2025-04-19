@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::Mutex;
+use crate::connection::ConnectionHandler;
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
@@ -16,7 +17,7 @@ pub struct Append {
 impl Append {
     pub fn append_command(
         db: &mut Arc<Mutex<Db>>,
-        parse: &mut Parse
+        parse: &mut Parse,
     ) -> crate::Result<Frame> {
         match Append::parse_command(parse) {
             Ok(append) => {

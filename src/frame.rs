@@ -20,6 +20,11 @@ pub enum Frame{
     Null,
     /// 数组类型，如 *2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n 表示一个包含两个元素的数组
     Array(Vec<Frame>),
+
+    /// 非 RESP协议类型
+    /// 用于表示不需要统一函数返回的回复，由调用者自行处理回复。
+    /// 这个枚举值可以作为一种信号，告知框架不需要返回统一的回复。
+    NoResponse,
 }
 #[derive(Debug)]
 pub enum Error{

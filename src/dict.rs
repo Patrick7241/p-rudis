@@ -55,7 +55,9 @@ impl Command {
         }
     }
     /// 获取命令对应的处理函数
-    pub fn get_command_fn(name: &str) -> Option<Arc<dyn Fn(&mut Arc<Mutex<Db>>,&mut Parse) -> crate::Result<Frame> + Send + Sync + 'static>> {
+    pub fn get_command_fn(name: &str)
+        -> Option<Arc<dyn Fn(&mut Arc<Mutex<Db>>, &mut Parse, )
+        -> crate::Result<Frame> + Send + Sync + 'static>> {
         if name.is_empty() {
             return None;
         }

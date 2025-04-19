@@ -1,7 +1,13 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::sync::Mutex;
+use tokio::sync::broadcast;
+use tokio_stream::{Stream, StreamExt, StreamMap};
+use bytes::Bytes;
+
+pub(crate) type Messages = Pin<Box<dyn Stream<Item = Bytes> + Send>>;
 
 #[derive(Debug)]
 pub struct DbHolder {
@@ -11,12 +17,17 @@ pub struct DbHolder {
 #[derive(Clone, Debug)]
 pub struct Db {
     storage: HashMap<String, DbEntry>,
+    /// 发布/订阅模式
+    /// 键是发布/订阅模式下的频道，值是每个频道的广播发送器
+    pub_sub: HashMap<String, broadcast::Sender<Bytes>>
 }
 
 #[derive(Clone, Debug)]
 pub struct DbEntry {
+    /// 基本数据结构的数据类型
     value: DbType,
-    expiration: Option<u64>,  // 存储过期时间，单位 毫秒
+    /// 存储过期时间，单位 毫秒
+    expiration: Option<u64>,
 }
 
 #[derive(Clone, Debug)]
@@ -45,9 +56,10 @@ impl Db {
     pub fn new() -> Db {
         let db=Db {
             storage: HashMap::new(),
+            pub_sub: HashMap::new(),
         };
         // 开启定时任务，定时处理过期的键值
-        tokio::spawn(periodic_cleanup(db.clone(), Duration::from_secs(10)));
+        tokio::spawn(periodic_cleanup(db.clone(), Duration::from_secs(1024)));
         db
     }
 
@@ -120,6 +132,44 @@ impl Db {
             false
         }
     }
+
+    pub fn subscribe(&mut self, channel: &str) -> &mut broadcast::Sender<Bytes> {
+        self.pub_sub.entry(channel.to_string())
+            .or_insert_with(|| {
+                let (sender, _) = broadcast::channel(1024);
+                sender
+            })
+        // if self.pub_sub.contains_key(channel) {
+        //     println!("存在： {}",channel);
+        //     self.pub_sub.get_mut(channel).unwrap()
+        // } else {
+        //     println!("不存在,创建： {}",channel);
+        //     let (sender, _) = broadcast::channel(1024);
+        //     self.pub_sub.insert(channel.to_string(), sender);
+        //     self.pub_sub.get_mut(channel).unwrap()
+        // }
+    }
+
+    /// 向指定频道中发送消息
+    /// 返回接收到消息的订阅者数量
+    pub fn publish(&mut self, channel: &str, message: String) -> usize {
+        self.pub_sub.get(channel).map(|sender| {
+            sender.send(Bytes::from(message)).unwrap_or(0)
+        }).unwrap_or(0)
+        // if let Some(sender) = self.pub_sub.get(channel) {
+        //     if sender.send(Bytes::from(message)).is_ok() {
+        //         println!("Sent message to channel {}", channel);
+        //         sender.receiver_count()
+        //     } else {
+        //         println!("Failed to send message to channel {}", channel);
+        //         0
+        //     }
+        // } else {
+        //     println!("Channel {} not found", channel);
+        //     0
+        // }
+    }
+
 }
 
 /// 定期删除（Active Expiration）

@@ -1,10 +1,13 @@
 use std::io::Error;
+use std::ops::Deref;
 use std::process::id;
 use std::sync::{Arc};
 use log::{error, info};
 use tokio::net::{TcpListener, TcpStream};
 use std::sync::Mutex;
-use crate::{dict, frame, parse};
+use tokio::select;
+use tokio::sync::broadcast;
+use crate::{cmd, dict, frame, parse};
 use crate::connection::ConnectionHandler;
 use crate::db::{Db, DbHolder};
 use crate::shutdown::Shutdown;
@@ -16,7 +19,9 @@ pub struct Listener {
     /// 监听客户端的连接
     listener: TcpListener,
     /// 管理数据库
-    db_holder: DbHolder
+    db_holder: DbHolder,
+    /// 用于处理发布订阅模式的关闭信号
+    notify_shutdown:broadcast::Sender<()>
 }
 
 #[derive(Debug)]
@@ -54,9 +59,10 @@ pub async fn run(listener: TcpListener,shutdown: impl Future){
 
     let mut listener=Listener{
         listener,
-        db_holder:DbHolder::new()
+        db_holder:DbHolder::new(),
+        notify_shutdown:broadcast::channel(1).0
     };
-   tokio::select! {
+   select! {
        res=listener.run()=>{
            if let Err(err)=res{
                error!("监听出错: {}",err)
@@ -78,7 +84,7 @@ impl Listener {
             let mut handler=Handler{
                 db:self.db_holder.get_db(),
                 connection:ConnectionHandler::new(Arc::new(tokio::sync::Mutex::new(socket))),
-                shutdown:Shutdown::new()
+                shutdown:Shutdown::new(self.notify_shutdown.subscribe())
             };
             tokio::spawn(async move {
                 if let Err(err)=handler.run().await{
@@ -116,7 +122,17 @@ impl Handler{
         }else {
             // 命令存在，获取并调用对应处理函数
             if let Some(command_fn) = Command::get_command_fn(&command_name) {
-                // 传数据库，connection连接，Parse命令内容，返回错误信息和发送会客户端的信息
+                // TODO 对于需要阻塞返回的函数暂时单独处理，后续可以封装一个阻塞处理的命令表
+                if command_name == "subscribe" {
+                    cmd
+                    ::pubsub
+                    ::subscribe
+                    ::Subscribe
+                    ::subscribe_command(&mut self.db, &mut parts,&mut self.connection, &mut self.shutdown)
+                        .await?;
+                    return Ok(());
+                }
+                // 传数据库，Parse命令内容,返回错误信息
                 let res = command_fn(&mut self.db, &mut parts)?;
                 self.connection.write_data(res).await?;
             } else {
@@ -128,7 +144,4 @@ impl Handler{
         }
         Ok(())
     }
-
 }
-
-

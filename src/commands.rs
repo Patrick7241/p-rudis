@@ -7,6 +7,10 @@ use crate::db::Db;
 use crate::frame::Frame;
 use crate::parse::Parse;
 
+/// 空函数占位，不符合统一参数和返回值标准的函数可使用
+fn empty_command(_: &mut Arc<Mutex<Db>>, _: &mut Parse) -> crate::Result<Frame> {
+    Ok(Frame::NoResponse)
+}
 
 /// 定义命令元数据，后续命令都可以添加到这里
 pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) -> crate::Result<Frame>)] = &[
@@ -14,6 +18,12 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("ping", "测试连接是否正常。", "O(1)", cmd::ping::Ping::ping_command),
     // echo
     ("echo", "返回指定的字符串。", "O(N)", cmd::echo::Echo::echo_command),
+    // pubsub
+    ("publish", "向指定频道发布消息。", "O(1)", cmd::pubsub::publish::Publish::publish_command),
+    ("subscribe", "订阅指定频道，接收消息。", "O(1)", empty_command),
+    // ("unsubscribe", "取消订阅指定频道。", "O(1)", cmd::pubsub::unsubscribe::Unsubscribe::unsubscribe_command),
+    // ("psubscribe", "使用模式订阅频道。", "O(1)", cmd::pubsub::psubscribe::PSubscribe::psubscribe_command),
+    // ("punsubscribe", "取消使用模式订阅的频道。", "O(1)", cmd::pubsub::punsubscribe::PUnsubscribe::punsubscribe_command),
     // string
     ("set", "设置指定键的值。", "O(1)", cmd::string::set::Set::set_command),
     ("get", "返回指定键的字符串值。", "O(1)", cmd::string::get::Get::get_command),
