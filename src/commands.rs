@@ -55,7 +55,7 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("rpush", "将一个或多个值插入到列表的尾部。", "O(1)", cmd::list::rpush::Rpush::rpush_command),
     ("lpop", "移除并返回列表的第一个元素。", "O(1)", cmd::list::lpop::Lpop::lpop_command),
     ("rpop", "移除并返回列表的最后一个元素。", "O(1)", cmd::list::rpop::Rpop::rpop_command),
-    // ("lrange", "返回列表中指定范围的元素。", "O(N)", cmd::list::lrange::Lrange::lrange_command),
+    ("lrange", "返回列表中指定范围的元素。", "O(N)", cmd::list::lrange::Lrange::lrange_command),
     // ("lindex", "返回列表中指定索引的元素。", "O(1)", cmd::list::lindex::Lindex::lindex_command),
     // ("llen", "返回列表的长度。", "O(1)", cmd::list::llen::Llen::llen_command),
     // ("lset", "设置列表中指定索引的值。", "O(N)", cmd::list::lset::Lset::lset_command),
