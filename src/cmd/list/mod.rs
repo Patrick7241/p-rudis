@@ -7,3 +7,4 @@ pub mod lindex;
 pub mod llen;
 pub mod lset;
 pub mod lrem;
+pub mod ltrim;

@@ -60,7 +60,7 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("llen", "返回列表的长度。", "O(1)", cmd::list::llen::Llen::llen_command),
     ("lset", "设置列表中指定索引的值。", "O(N)", cmd::list::lset::Lset::lset_command),
     ("lrem", "移除列表中指定值的元素。", "O(N)", cmd::list::lrem::Lrem::lrem_command),
-    // ("ltrim", "对列表进行修剪，保留指定范围的元素。", "O(N)", cmd::list::ltrim::Ltrim::ltrim_command),
+    ("ltrim", "对列表进行修剪，保留指定范围的元素。", "O(N)", cmd::list::ltrim::Ltrim::ltrim_command),
     // ("blpop", "阻塞式从左侧弹出一个元素。", "O(1)", cmd::list::blpop::Blpop::blpop_command),
     // ("brpop", "阻塞式从右侧弹出一个元素。", "O(1)", cmd::list::brpop::Brpop::brpop_command),
     // ("brpoplpush", "阻塞式弹出一个元素并将其推入另一个列表。", "O(1)", cmd::list::brpoplpush::Brpoplpush::brpoplpush_command)
