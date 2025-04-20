@@ -49,5 +49,19 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("hvals", "获取哈希表中的所有值。", "O(N)", cmd::hash::hvals::Hvals::hvals_command),
     ("hlen", "获取哈希表中的字段数量。", "O(1)", cmd::hash::hlen::Hlen::hlen_command),
     ("hexists", "检查哈希表中指定字段是否存在。", "O(1)", cmd::hash::hexists::Hexists::hexists_command),
-    ("hsetnx", "只有在字段不存在的情况下，才会设置字段的值。", "O(1)", cmd::hash::hsetnx::Hsetnx::hsetnx_command)
+    ("hsetnx", "只有在字段不存在的情况下，才会设置字段的值。", "O(1)", cmd::hash::hsetnx::Hsetnx::hsetnx_command),
+    // list
+    ("lpush", "将一个或多个值插入到列表的头部。", "O(1)", cmd::list::lpush::Lpush::lpush_command),
+    // ("rpush", "将一个或多个值插入到列表的尾部。", "O(1)", cmd::list::rpush::Rpush::rpush_command),
+    // ("lpop", "移除并返回列表的第一个元素。", "O(1)", cmd::list::lpop::Lpop::lpop_command),
+    // ("rpop", "移除并返回列表的最后一个元素。", "O(1)", cmd::list::rpop::Rpop::rpop_command),
+    // ("lrange", "返回列表中指定范围的元素。", "O(N)", cmd::list::lrange::Lrange::lrange_command),
+    // ("lindex", "返回列表中指定索引的元素。", "O(1)", cmd::list::lindex::Lindex::lindex_command),
+    // ("llen", "返回列表的长度。", "O(1)", cmd::list::llen::Llen::llen_command),
+    // ("lset", "设置列表中指定索引的值。", "O(N)", cmd::list::lset::Lset::lset_command),
+    // ("lrem", "移除列表中指定值的元素。", "O(N)", cmd::list::lrem::Lrem::lrem_command),
+    // ("ltrim", "对列表进行修剪，保留指定范围的元素。", "O(N)", cmd::list::ltrim::Ltrim::ltrim_command),
+    // ("blpop", "阻塞式从左侧弹出一个元素。", "O(1)", cmd::list::blpop::Blpop::blpop_command),
+    // ("brpop", "阻塞式从右侧弹出一个元素。", "O(1)", cmd::list::brpop::Brpop::brpop_command),
+    // ("brpoplpush", "阻塞式弹出一个元素并将其推入另一个列表。", "O(1)", cmd::list::brpoplpush::Brpoplpush::brpoplpush_command)
 ];

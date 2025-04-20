@@ -4,9 +4,8 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::sync::Mutex;
 use tokio::sync::broadcast;
-use tokio_stream::{Stream, StreamExt, StreamMap};
+use tokio_stream::{Stream, StreamExt};
 use bytes::Bytes;
-use crate::cmd::pubsub::psubscribe::PSubscribe;
 
 /// 定义一个类型别名 Messages，表示一个动态的异步流。
 /// 这个异步流用于处理字节数据（Bytes），并且可以跨线程安全地传递。
