@@ -49,8 +49,5 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("hlen", "获取哈希表中的字段数量。", "O(1)", cmd::hash::hlen::Hlen::hlen_command),
     ("hexists", "检查哈希表中指定字段是否存在。", "O(1)", cmd::hash::hexists::Hexists::hexists_command),
     ("hsetnx", "只有在字段不存在的情况下，才会设置字段的值。", "O(1)", cmd::hash::hsetnx::Hsetnx::hsetnx_command)
-
 ];
-
-
 

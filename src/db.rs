@@ -7,6 +7,14 @@ use tokio::sync::broadcast;
 use tokio_stream::{Stream, StreamExt, StreamMap};
 use bytes::Bytes;
 
+/// 定义一个类型别名 `Messages`，表示一个动态的异步流。
+/// 这个异步流用于处理字节数据（`Bytes`），并且可以跨线程安全地传递。
+/// 使用 `Pin<Box<dyn Stream<Item = Bytes> + Send>>` 的原因如下：
+/// - `dyn Stream<Item = Bytes>`：允许动态地处理不同类型的异步流，
+///   只要它们产生的数据类型是 `Bytes`。这提供了灵活性，可以支持多种数据源。
+/// - `Pin<Box<...>>`：确保异步流在内存中的位置不会改变。这是异步运行时（如 Tokio）
+///   的要求，以避免悬挂指针或其他内存安全问题。
+/// - `+ Send`：确保这个异步流可以在多个线程之间安全地传递，这是并发编程中的一个重要特性。
 pub(crate) type Messages = Pin<Box<dyn Stream<Item = Bytes> + Send>>;
 
 #[derive(Debug)]
