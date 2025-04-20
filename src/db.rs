@@ -6,6 +6,7 @@ use std::sync::Mutex;
 use tokio::sync::broadcast;
 use tokio_stream::{Stream, StreamExt, StreamMap};
 use bytes::Bytes;
+use crate::cmd::pubsub::psubscribe::PSubscribe;
 
 /// 定义一个类型别名 Messages，表示一个动态的异步流。
 /// 这个异步流用于处理字节数据（Bytes），并且可以跨线程安全地传递。
@@ -27,7 +28,10 @@ pub struct Db {
     storage: HashMap<String, DbEntry>,
     /// 发布/订阅模式
     /// A publish/subscribe model, where the key is the channel and the value is the broadcast sender for that channel.
-    pub_sub: HashMap<String, broadcast::Sender<Bytes>>
+    pub_sub: HashMap<String, broadcast::Sender<Bytes>>,
+    /// 记录发布/订阅模式下，通配符的广播
+    /// Records the broadcast for the publish/subscribe pattern with wildcard.
+    psubscribes: HashMap<String, broadcast::Sender<Bytes>>,
 }
 
 #[derive(Clone, Debug)]
@@ -67,6 +71,7 @@ impl Db {
         let db = Db {
             storage: HashMap::new(),
             pub_sub: HashMap::new(),
+            psubscribes: HashMap::new(),
         };
         // 开启定时任务，定时处理过期的键值
         // Start a periodic task to clean up expired keys.
@@ -161,14 +166,55 @@ impl Db {
             })
     }
 
-    /// 向指定频道中发送消息
+    /// Subscribe to a channel with wildcard support.
+    /// This function checks if the channel name ends with a wildcard character (`*`).
+    /// If it does, the subscription is handled under the `psubscribe` pattern, allowing wildcard matching.
+    /// Otherwise, the subscription behaves like a regular `subscribe` to the specific channel.
+    ///
+    /// 订阅频道，允许使用通配符。
+    /// 该函数会检查频道名称是否以通配符字符（`*`）结尾。如果是，它会按照 `psubscribe` 模式处理订阅，允许通配符匹配。
+    /// 否则，订阅将像普通的 `subscribe` 一样处理，针对指定的频道进行订阅。
+    pub fn psubscribe(&mut self, mut channel: &str) -> &mut broadcast::Sender<Bytes> {
+        if channel.ends_with("*") {
+            channel = &channel[..channel.len() - 1];
+            self.psubscribes.entry(channel.to_string())
+                .or_insert_with(|| {
+                    let (sender, _) = broadcast::channel(1024);
+                    sender
+                })
+        } else {
+            self.pub_sub.entry(channel.to_string())
+                .or_insert_with(|| {
+                    let (sender, _) = broadcast::channel(1024);
+                    sender
+                })
+        }
+    }
+
+
     /// Publish a message to the specified channel.
-    /// 返回接收到消息的订阅者数量
-    /// Returns the number of subscribers who received the message.
+    /// Returns the total number of subscribers who received the message (from both exact and wildcard matches).
+    /// 向指定频道中发送消息。返回接收到消息的订阅者数量（包括精确匹配和通配符匹配的订阅者）。
     pub fn publish(&mut self, channel: &str, message: String) -> usize {
+        let mut received_count = 0;
+
+        // Handle psubscribe with wildcard matching
+        // 处理 psubscribe 的通配符匹配
+        for (pattern, sender) in self.psubscribes.iter_mut() {
+            if channel.starts_with(pattern) {  // Check if the channel starts with the pattern
+                sender.send(Bytes::from(message.clone())).unwrap_or(0);
+                received_count += 1;  // Count the subscriber
+            }
+        }
+
+        // Handle exact channel matching in pub_sub
+        // 处理 pub_sub 中的精确频道匹配
         self.pub_sub.get(channel).map(|sender| {
-            sender.send(Bytes::from(message)).unwrap_or(0)
-        }).unwrap_or(0)
+            sender.send(Bytes::from(message)).unwrap_or(0);
+            received_count += 1;  // Count the subscriber
+        });
+
+        received_count
     }
 }
 

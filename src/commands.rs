@@ -24,9 +24,7 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     // pubsub
     ("publish", "向指定频道发布消息。", "O(1)", cmd::pubsub::publish::Publish::publish_command),
     ("subscribe", "订阅指定频道，接收消息。", "O(1)", empty_command),
-    // ("unsubscribe", "取消订阅指定频道。", "O(1)", cmd::pubsub::unsubscribe::Unsubscribe::unsubscribe_command),
-    // ("psubscribe", "使用模式订阅频道。", "O(1)", cmd::pubsub::psubscribe::PSubscribe::psubscribe_command),
-    // ("punsubscribe", "取消使用模式订阅的频道。", "O(1)", cmd::pubsub::punsubscribe::PUnsubscribe::punsubscribe_command),
+    ("psubscribe", "使用模式订阅频道。", "O(1)", empty_command),
     // string
     ("set", "设置指定键的值。", "O(1)", cmd::string::set::Set::set_command),
     ("get", "返回指定键的字符串值。", "O(1)", cmd::string::get::Get::get_command),

@@ -8,29 +8,28 @@ use tokio::select;
 use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, StreamMap};
 
-/// `Subscribe` struct represents the subscription operation.
-/// `Subscribe` 结构体用于表示订阅操作。
+/// `PSubscribe` struct represents the pattern subscription operation.
+/// `PSubscribe` 结构体用于表示模式订阅操作。
 ///
-/// The struct contains a list of channels that the client wants to subscribe to.
-/// 该结构体包含一个频道列表，表示客户端希望订阅的所有频道。
+/// The struct contains a list of patterns (wildcard) that the client wants to subscribe to.
+/// 该结构体包含一个模式列表，表示客户端希望订阅的所有模式（通配符模式）。
 ///
 /// # Example
-/// # 示例
 /// ```text
-/// SUBSCRIBE channel1 channel2 ...
+/// PSUBSCRIBE pattern1 pattern2 ...
 /// ```
-pub struct Subscribe {
-    channels: Vec<String>,  // The list of channels to subscribe to. / 订阅的频道列表
+pub struct PSubscribe {
+    patterns: Vec<String>,  // The list of patterns to subscribe to. / 订阅的模式列表
 }
 
-impl Subscribe {
-    /// Executes the `subscribe` command.
-    /// 执行 `subscribe` 命令。
+impl PSubscribe {
+    /// Executes the `psubscribe` command.
+    /// 执行 `psubscribe` 命令。
     ///
-    /// This method will parse the incoming command and perform the subscription accordingly.
-    /// 该方法将解析传入的命令并进行相应的订阅操作。
-    /// It will send a confirmation message for each channel and subscribe to these channels in the background.
-    /// 它将为每个频道发送确认消息，并且在后台订阅这些频道以接收消息。
+    /// This method will parse the incoming command and perform the pattern subscription accordingly.
+    /// 该方法将解析传入的命令并进行相应的模式订阅操作。
+    /// It will send a confirmation message for each pattern and subscribe to channels matching these patterns in the background.
+    /// 它将为每个模式发送确认消息，并且在后台订阅匹配该模式的频道以接收消息。
     ///
     /// # Arguments
     /// # 参数
@@ -43,20 +42,20 @@ impl Subscribe {
     /// # 返回
     /// If the command is parsed successfully, returns the result of the subscription operation.
     /// 如果命令解析成功，则返回订阅操作的结果。
-    pub async fn subscribe_command(
+    pub async fn psubscribe_command(
         db: &mut Arc<Mutex<Db>>,
         parse: &mut Parse,
         connection: &mut ConnectionHandler,
         shutdown: &mut Shutdown,
     ) -> crate::Result<()> {
-        match Subscribe::parse_command(parse) {
-            Ok(s) => {
-                // Send subscription confirmation message, similar to Redis behavior
-                // 发送订阅确认消息，类似于 Redis 的行为
-                for (index, channel) in s.channels.iter().enumerate() {
+        match PSubscribe::parse_command(parse) {
+            Ok(p) => {
+                // Send subscription confirmation message for each pattern
+                // 发送每个模式的订阅确认消息
+                for (index, pattern) in p.patterns.iter().enumerate() {
                     let confirm_frames = vec![
-                        Frame::Bulk("subscribe".into()),  // Representing the subscribe command / 表示 subscribe 命令
-                        Frame::Bulk(channel.clone().into()),  // Current channel's name / 当前频道的名称
+                        Frame::Bulk("psubscribe".into()),  // Representing the psubscribe command / 表示 psubscribe 命令
+                        Frame::Bulk(pattern.clone().into()),  // Current pattern / 当前模式
                         Frame::Integer((index + 1) as i64),  // Sequence number starts from 1 / 序号从 1 开始递增
                     ];
                     connection.write_data(Frame::Array(confirm_frames)).await?; // Send confirmation message / 发送确认消息
@@ -66,18 +65,18 @@ impl Subscribe {
                 // streamMap 是专门为异步流设计的哈希Map，用于管理多个订阅
                 let mut subscriptions = StreamMap::new();
 
-                // Subscribe to each channel
-                // 为每个频道建立订阅
-                for channel in &s.channels {
-                    subscribe_to_channel(db, channel, &mut subscriptions).await?; // Subscribe to the channel / 为频道订阅消息
+                // Subscribe to channels matching each pattern
+                // 为每个模式匹配的频道建立订阅
+                for pattern in &p.patterns {
+                    psubscribe_to_pattern(db, pattern, &mut subscriptions).await?; // Subscribe to channels matching the pattern / 为匹配模式的频道订阅
                 }
 
                 // Listen to the subscribed channels and connection messages
                 // 监听订阅的频道和连接的消息
                 loop {
                     select! {
-                        // Handle received message from a subscribed channel
-                        // 收到某个频道的消息并处理
+                        // Handle received message from a matching channel
+                        // 收到匹配频道的消息并处理
                         Some((channel, msg)) = subscriptions.next() => {
                             let msg = vec![
                                Frame::Bulk("message".into()),  // Message type / 消息类型
@@ -97,7 +96,7 @@ impl Subscribe {
                                 // 接收订阅模式关闭信号
                                 None => return Ok(()),
                             };
-                            return Ok(());
+                            return Ok(());  // Exit if the client ends the connection / 如果客户端关闭连接，退出
                         }
                         // Handle shutdown signal
                         // 处理关闭信号
@@ -112,7 +111,7 @@ impl Subscribe {
                 // 如果解析失败，发送错误信息
                 connection
                     .write_data(Frame::Error(
-                        "ERR wrong number of arguments for 'subscribe' command".to_string(),
+                        "ERR wrong number of arguments for 'psubscribe' command".to_string(),
                     ))
                     .await?; // Send error message / 发送错误消息
                 Ok(())
@@ -120,12 +119,12 @@ impl Subscribe {
         }
     }
 
-    /// Parse the client's `SUBSCRIBE` command and return a `Subscribe` instance.
-    /// 解析客户端的 `SUBSCRIBE` 命令并返回一个 `Subscribe` 实例
+    /// Parse the client's `PSUBSCRIBE` command and return a `PSubscribe` instance.
+    /// 解析客户端的 `PSUBSCRIBE` 命令并返回一个 `PSubscribe` 实例
     ///
-    /// This method parses the client-provided channel parameters and generates a `Subscribe` instance
-    /// with the list of channels to subscribe to.
-    /// 该方法会解析客户端传来的频道参数并生成一个 `Subscribe` 实例，包含多个频道的列表。
+    /// This method parses the client-provided pattern parameters and generates a `PSubscribe` instance
+    /// with the list of patterns to subscribe to.
+    /// 该方法会解析客户端传来的模式参数并生成一个 `PSubscribe` 实例，包含多个模式的列表。
     ///
     /// # Arguments
     /// # 参数
@@ -133,62 +132,62 @@ impl Subscribe {
     ///
     /// # Return
     /// # 返回
-    /// Returns the parsed `Subscribe` instance containing all the subscribed channels.
-    /// 返回解析后的 `Subscribe` 实例，包含所有订阅的频道名称。
+    /// Returns the parsed `PSubscribe` instance containing all the subscribed patterns.
+    /// 返回解析后的 `PSubscribe` 实例，包含所有订阅的模式。
     /// If the command is invalid, returns an error.
     /// 如果命令无效，返回错误。
-    fn parse_command(parse: &mut Parse) -> crate::Result<Subscribe> {
-        let mut channels = Vec::new();
+    fn parse_command(parse: &mut Parse) -> crate::Result<PSubscribe> {
+        let mut patterns = Vec::new();
 
-        // Parse each channel name
-        // 解析每个频道名称
+        // Parse each pattern
+        // 解析每个模式
         while let Ok(arg) = parse.next_string() {
-            channels.push(arg);
+            patterns.push(arg);
         }
 
-        // If no channels are provided, return an error
-        // 如果没有传入任何频道，则返回错误
-        if channels.is_empty() {
+        // If no patterns are provided, return an error
+        // 如果没有传入任何模式，则返回错误
+        if patterns.is_empty() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                "ERR wrong number of arguments for 'subscribe' command".to_string(),
+                "ERR wrong number of arguments for 'psubscribe' command".to_string(),
             )));
         }
 
-        Ok(Subscribe { channels })
+        Ok(PSubscribe { patterns })
     }
 }
 
-/// Subscribe to a channel and insert the receiving stream into `StreamMap` for management
-/// 为每个频道建立订阅并将接收流插入 `StreamMap` 中进行管理
+/// Subscribe to channels matching the pattern and insert the receiving stream into `StreamMap` for management
+/// 为每个模式匹配的频道建立订阅并将接收流插入 `StreamMap` 中进行管理
 ///
-/// This method subscribes to a channel by creating an asynchronous message receiving stream
-/// and stores it in the `StreamMap`.
-/// 该方法会为每个频道建立一个异步消息接收流，并将其存入 `StreamMap` 中。
+/// This method subscribes to channels matching the pattern and creates an asynchronous message receiving stream
+/// that is inserted into the `StreamMap` for managing multiple subscriptions.
+/// 该方法会为匹配模式的频道建立一个异步消息接收流，并将其存入 `StreamMap` 中。
 ///
 /// # Arguments
 /// # 参数
 /// - `db`: Shared reference to the database for access. / 用于访问数据库的共享引用。
-/// - `channel`: The channel name. / 频道名称。
+/// - `pattern`: The pattern to match channels. / 用于匹配频道的模式。
 /// - `subscriptions`: The `StreamMap` that manages multiple subscriptions. / 用于管理多个订阅的 `StreamMap`。
 ///
 /// # Return
 /// # 返回
 /// Returns the result of the subscription operation.
 /// 返回订阅操作的结果。
-pub async fn subscribe_to_channel(
+pub async fn psubscribe_to_pattern(
     db: &mut Arc<Mutex<Db>>,
-    channel: &str,
+    pattern: &str,
     subscriptions: &mut StreamMap<String, crate::db::Messages>,
 ) -> crate::Result<()> {
-    // Get the mutable reference to the specified channel and subscribe to it
-    // 获取指定频道的可变引用并订阅该频道
+    // Get the mutable reference to the specified pattern and subscribe to matching channels
+    // 获取指定模式的可变引用并订阅匹配的频道
     let mut guard = db.lock().unwrap();
-    let sender = guard.subscribe(channel);
+    let sender = guard.psubscribe(pattern);
 
     let mut receiver = sender.subscribe();
 
-    // Create an asynchronous stream using async_stream to receive messages from the channel
+    // Create an asynchronous stream using async_stream to receive messages from the channels
     // 使用 async_stream 创建一个异步流，用于接收频道的消息
     let receiver = Box::pin(async_stream::stream! {
         loop {
@@ -200,9 +199,9 @@ pub async fn subscribe_to_channel(
         }
     });
 
-    // Insert the subscribed channel and the message receiving stream into the subscriptions map
-    // 将订阅的频道和对应的消息接收流插入到 subscriptions 中进行管理
-    subscriptions.insert(channel.to_string(), receiver);
+    // Insert the subscribed pattern and the message receiving stream into the subscriptions map
+    // 将订阅的模式和对应的消息接收流插入到 subscriptions 中进行管理
+    subscriptions.insert(pattern.to_string(), receiver);
 
     // Return success
     // 返回成功

@@ -143,15 +143,24 @@ impl Handler {
             if let Some(command_fn) = Command::get_command_fn(&command_name) {
                 // TODO 对于需要阻塞返回的函数暂时单独处理，后续可以封装一个阻塞处理的命令表
                 // TODO: Temporarily handle blocking return functions, later can encapsulate a blocking command table
-                if command_name == "subscribe" {
-                    cmd::pubsub::subscribe::Subscribe::subscribe_command(&mut self.db, &mut parts, &mut self.connection, &mut self.shutdown)
-                        .await?;  // Handle subscribe command
+                match command_name.as_str() {
+                    "subscribe"=>{
+                        cmd::pubsub::subscribe::Subscribe::subscribe_command(&mut self.db, &mut parts, &mut self.connection, &mut self.shutdown)
+                            .await?;  // Handle subscribe command
+                        return Ok(());
+                    }
+                   "psubscribe"=>{
+                    cmd::pubsub::psubscribe::PSubscribe::psubscribe_command(&mut self.db, &mut parts, &mut self.connection, &mut self.shutdown)
+                        .await?;
                     return Ok(());
+                    }
+                    _=>{
+                        // 传数据库，Parse命令内容,返回错误信息
+                        // Pass the database, parse the command content, return error information
+                        let res = command_fn(&mut self.db, &mut parts)?;
+                        self.connection.write_data(res).await?;  // Write result to connection
+                    }
                 }
-                // 传数据库，Parse命令内容,返回错误信息
-                // Pass the database, parse the command content, return error information
-                let res = command_fn(&mut self.db, &mut parts)?;
-                self.connection.write_data(res).await?;  // Write result to connection
             } else {
                 // 处理错误
                 // Handle error
