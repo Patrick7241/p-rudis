@@ -5,17 +5,46 @@ use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
 
-/// hash类型 hsetnx命令
-/// 设置哈希表中指定字段的值，仅当该字段不存在时才设置。
-/// 返回 `1` 表示字段被添加成功，返回 `0` 表示字段已存在，未进行任何操作。
-
+/// Represents the `HSETNX` command in a Redis-like system.
+///
+/// The `HSETNX` command sets the value of a field in a hash stored at the specified key only if the field does not already exist.
+/// The command returns:
+/// - `1` if the field is added successfully (field did not exist).
+/// - `0` if the field already exists (no operation performed).
+///
+/// 表示 Redis 风格系统中的 `HSETNX` 命令。
+///
+/// `HSETNX` 命令仅在哈希表中指定字段不存在时才设置字段的值。如果字段已存在，则不进行任何操作。
+/// 命令返回：
+/// - 如果字段成功添加（字段不存在），返回 `1`。
+/// - 如果字段已存在（没有进行任何操作），返回 `0`。
 pub struct Hsetnx {
-    key: String,
-    field: String,
-    value: String,
+    key: String,   // The key of the hash in the database. / 数据库中哈希表的键。
+    field: String, // The field to set in the hash. / 要在哈希表中设置的字段。
+    value: String, // The value to associate with the field. / 要与字段关联的值。
 }
 
 impl Hsetnx {
+    /// Executes the `HSETNX` command.
+    ///
+    /// This function processes the parsed command and sets the specified field in the hash stored at the given key only if the field does not already exist.
+    /// It handles the following scenarios:
+    ///
+    /// - If the key exists and contains a hash, it only adds the field if the field does not already exist.
+    /// - If the key does not exist, it creates a new hash and sets the field and value.
+    ///
+    /// # Arguments
+    ///
+    /// - `db`: A mutable reference to the database (`Arc<Mutex<Db>>`), where the hash is stored.
+    ///         / 数据库 (`Arc<Mutex<Db>>`) 的可变引用，存储哈希表的位置。
+    /// - `parse`: A reference to the parser that contains the parsed command.
+    ///            / 解析器的引用，包含解析后的命令。
+    ///
+    /// # Returns
+    ///
+    /// Returns an `Integer` frame with either `1` (if the field was added) or `0` (if the field already exists).
+    ///
+    /// 返回一个 `Integer` 类型的帧，值为 `1`（如果字段被添加）或 `0`（如果字段已存在）。
     pub fn hsetnx_command(
         db: &mut Arc<Mutex<Db>>,
         parse: &mut Parse,
@@ -25,31 +54,44 @@ impl Hsetnx {
                 let mut db = db.lock().unwrap();
                 match db.get_dbtype_mut(&hsetnx.key) {
                     Some(DbType::Hash(hash)) => {
+                        // If the field exists, do nothing and return 0.
                         // 如果字段已存在，不做任何操作，返回 0
                         if hash.contains_key(&hsetnx.field) {
                             Ok(Frame::Integer(0))
                         } else {
-                            // 字段不存在，插入并返回 1
+                            // If the field does not exist, insert it and return 1.
+                            // 如果字段不存在，插入并返回 1
                             hash.insert(hsetnx.field, hsetnx.value);
                             Ok(Frame::Integer(1))
                         }
                     },
+                    // If the hash does not exist, create a new hash and insert the field.
                     // 如果哈希表不存在，创建并插入字段，返回 1
                     _ => {
                         let mut new_hash = HashMap::new();
                         new_hash.insert(hsetnx.field, hsetnx.value);
                         db.set(&hsetnx.key, DbType::Hash(new_hash), None);
-                        Ok(Frame::Integer(1))
+                        Ok(Frame::Integer(1)) // Return 1 as the new field is added.
                     }
                 }
             }
             Err(_) => {
+                // Incorrect number of arguments, return error. / 参数数量错误，返回错误。
                 Ok(Frame::Error("ERR wrong number of arguments for 'hsetnx' command".to_string()))
             }
         }
     }
 
-    /// 解析命令，确保参数为3个：key field value
+    /// Parses the command, ensuring there are exactly 3 arguments: key, field, and value.
+    ///
+    /// 解析命令，确保参数为 3 个：key，field，value。
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing the `Hsetnx` struct with the parsed key, field, and value if successful.
+    /// Otherwise, returns an error frame indicating the problem.
+    ///
+    /// 如果成功，返回包含解析后的键、字段和值的 `Hsetnx` 结构体。如果失败，返回错误帧以指示问题。
     fn parse_command(parse: &mut Parse) -> crate::Result<Self> {
         if parse.args_number()? != 3 {
             return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "ERR wrong number of arguments for 'hsetnx' command")));

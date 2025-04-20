@@ -1,4 +1,5 @@
 //! 命令元数据
+/// Command metadata
 
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -8,11 +9,13 @@ use crate::frame::Frame;
 use crate::parse::Parse;
 
 /// 空函数占位，不符合统一参数和返回值标准的函数可使用
+/// Placeholder function for commands that don't match the standard argument and return value conventions.
 fn empty_command(_: &mut Arc<Mutex<Db>>, _: &mut Parse) -> crate::Result<Frame> {
     Ok(Frame::NoResponse)
 }
 
 /// 定义命令元数据，后续命令都可以添加到这里
+/// Define command metadata, additional commands can be added here in the future.
 pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) -> crate::Result<Frame>)] = &[
     // ping
     ("ping", "测试连接是否正常。", "O(1)", cmd::ping::Ping::ping_command),
@@ -50,4 +53,3 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("hexists", "检查哈希表中指定字段是否存在。", "O(1)", cmd::hash::hexists::Hexists::hexists_command),
     ("hsetnx", "只有在字段不存在的情况下，才会设置字段的值。", "O(1)", cmd::hash::hsetnx::Hsetnx::hsetnx_command)
 ];
-
