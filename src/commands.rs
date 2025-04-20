@@ -52,9 +52,9 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("hsetnx", "只有在字段不存在的情况下，才会设置字段的值。", "O(1)", cmd::hash::hsetnx::Hsetnx::hsetnx_command),
     // list
     ("lpush", "将一个或多个值插入到列表的头部。", "O(1)", cmd::list::lpush::Lpush::lpush_command),
-    // ("rpush", "将一个或多个值插入到列表的尾部。", "O(1)", cmd::list::rpush::Rpush::rpush_command),
+    ("rpush", "将一个或多个值插入到列表的尾部。", "O(1)", cmd::list::rpush::Rpush::rpush_command),
     ("lpop", "移除并返回列表的第一个元素。", "O(1)", cmd::list::lpop::Lpop::lpop_command),
-    // ("rpop", "移除并返回列表的最后一个元素。", "O(1)", cmd::list::rpop::Rpop::rpop_command),
+    ("rpop", "移除并返回列表的最后一个元素。", "O(1)", cmd::list::rpop::Rpop::rpop_command),
     // ("lrange", "返回列表中指定范围的元素。", "O(N)", cmd::list::lrange::Lrange::lrange_command),
     // ("lindex", "返回列表中指定索引的元素。", "O(1)", cmd::list::lindex::Lindex::lindex_command),
     // ("llen", "返回列表的长度。", "O(1)", cmd::list::llen::Llen::llen_command),
