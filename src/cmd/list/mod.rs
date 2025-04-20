@@ -6,3 +6,4 @@ pub mod lrange;
 pub mod lindex;
 pub mod llen;
 pub mod lset;
+pub mod lrem;
