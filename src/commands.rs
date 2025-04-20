@@ -57,7 +57,7 @@ pub static COMMANDS: &[(&str, &str, &str, fn(&mut Arc<Mutex<Db>>, &mut Parse) ->
     ("rpop", "移除并返回列表的最后一个元素。", "O(1)", cmd::list::rpop::Rpop::rpop_command),
     ("lrange", "返回列表中指定范围的元素。", "O(N)", cmd::list::lrange::Lrange::lrange_command),
     ("lindex", "返回列表中指定索引的元素。", "O(1)", cmd::list::lindex::Lindex::lindex_command),
-    // ("llen", "返回列表的长度。", "O(1)", cmd::list::llen::Llen::llen_command),
+    ("llen", "返回列表的长度。", "O(1)", cmd::list::llen::Llen::llen_command),
     // ("lset", "设置列表中指定索引的值。", "O(N)", cmd::list::lset::Lset::lset_command),
     // ("lrem", "移除列表中指定值的元素。", "O(N)", cmd::list::lrem::Lrem::lrem_command),
     // ("ltrim", "对列表进行修剪，保留指定范围的元素。", "O(N)", cmd::list::ltrim::Ltrim::ltrim_command),
