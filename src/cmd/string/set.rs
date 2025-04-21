@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
+use crate::persistence::aof::propagate_aof;
 
 /// `Set` command for string type.
 /// `Set` 命令用于字符串类型。
@@ -47,7 +48,20 @@ impl Set {
 
                 // Set the key-value pair
                 // 设置键值对
-                db.set(&set.key, DbType::String(set.value), set.expiration);
+                db.set(&set.key.clone(), DbType::String(set.value.clone()), set.expiration);
+
+                // 构建参数列表
+                let mut args = vec![set.key.clone(), set.value.clone()];
+
+                // 如果设置了过期时间，则将过期时间添加到命令参数中
+                if let Some(exp) = set.expiration {
+                    // 假设我们使用 PX（毫秒）
+                    args.push("PX".to_string());
+                    args.push(exp.to_string());
+                }
+
+                // 调用 propagate_aof 并传递参数
+                propagate_aof("set".to_string(), args);
 
                 // Return success response
                 // 返回成功响应

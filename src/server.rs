@@ -13,6 +13,7 @@ use crate::db::{Db, DbHolder};
 use crate::shutdown::Shutdown;
 use crate::dict::Command;
 use crate::frame::Frame;
+use crate::persistence::aof::load_aof;
 
 #[derive(Debug)]
 pub struct Listener {
@@ -85,6 +86,10 @@ impl Listener {
     /// 启动监听
     /// Start listening
     async fn run(&mut self) -> Result<(), Error> {
+        if let Err(err) = load_aof(&mut self.db_holder.get_db(),"test.aof").await {
+            error!("加载 AOF 数据失败: {}", err);  // Error loading AOF file
+            return Err(err);
+        }
         loop {
             // 接收连接
             // Accept a connection
@@ -97,7 +102,8 @@ impl Listener {
                 connection: ConnectionHandler::new(Arc::new(tokio::sync::Mutex::new(socket))),
                 shutdown: Shutdown::new(self.notify_shutdown.subscribe()),
             };
-            tokio::spawn(async move {
+
+           tokio::spawn(async move {
                 if let Err(err) = handler.run().await {
                     error!("处理连接: {}", err)  // Error handling connection
                 }

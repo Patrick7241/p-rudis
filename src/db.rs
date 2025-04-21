@@ -234,10 +234,10 @@ pub fn cleanup_expired(db: &mut Db) {
     let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
     db.storage.retain(|_, entry| {
         match entry.expiration {
-            Some(expiration) => expiration > now, // 保留未过期的条目
             // Keep the non-expired entries.
-            None => true, // 没有过期时间的条目始终保留
+            Some(expiration) => expiration > now, // 保留未过期的条目
             // Entries without expiration always remain.
+            None => true, // 没有过期时间的条目始终保留
         }
     });
 }

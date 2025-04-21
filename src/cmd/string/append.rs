@@ -4,6 +4,7 @@ use crate::connection::ConnectionHandler;
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
+use crate::persistence::aof::propagate_aof;
 
 /// `Append` command for string type.
 /// `Append` 命令用于字符串类型。
@@ -53,6 +54,9 @@ impl Append {
                 // Set or update the value of the key
                 // 设置或更新键的值
                 db.set(&append.key, DbType::String(new_value.clone()), None);
+
+                // 存储方面，append和set一样，使用set便于合并
+                propagate_aof("set".to_string(), vec![append.key.clone(), append.value.clone()]);
 
                 // Return the length of the new string
                 // 返回追加后的新值的长度
