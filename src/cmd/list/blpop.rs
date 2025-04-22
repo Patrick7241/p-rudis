@@ -4,6 +4,7 @@ use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
 use std::time::{Duration, Instant};
+use crate::persistence::aof::propagate_aof;
 
 /// Represents the `BLPOP` command in a Redis-like system.
 ///
@@ -64,6 +65,7 @@ impl Blpop {
 
                         // Pop the first element from the list.
                         let value = list.pop_front().unwrap();
+                        propagate_aof("lpop".to_string(), vec![blpop.key.clone()]);
                         Ok(Frame::Bulk(value.into_bytes())) // Return the popped value.
                     },
                     // If the key exists but is not a list, return an error.

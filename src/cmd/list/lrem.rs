@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
+use crate::persistence::aof::propagate_aof;
 
 /// Represents the `LREM` command in a Redis-like system.
 ///
@@ -80,7 +81,9 @@ impl Lrem {
                                 i -= 1;
                             }
                         }
-                        Ok(Frame::Integer(removed_count as i64))
+                        let args=vec![lrem.key,removed_count.to_string(),lrem.value];
+                        propagate_aof("lrem".to_string(),args);
+                        Ok(Frame::Integer(removed_count))
                     }
                     // If the key does not exist or is not a list, return an error.
                     // 如果键不存在或不是列表类型，返回错误。

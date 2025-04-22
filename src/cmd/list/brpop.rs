@@ -4,6 +4,7 @@ use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
 use std::time::{Duration, Instant};
+use crate::persistence::aof::propagate_aof;
 
 /// Represents the `BRPOP` command in a Redis-like system.
 ///
@@ -62,6 +63,7 @@ impl Brpop {
 
                         // Pop the last element from the list.
                         let value = list.pop_back().unwrap();
+                        propagate_aof("rpop".to_string(), vec![brpop.key.clone()]);
                         Ok(Frame::Bulk(value.into_bytes())) // Return the popped value.
                     },
                     // If the key exists but is not a list, return an error.

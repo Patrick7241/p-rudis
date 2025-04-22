@@ -6,6 +6,7 @@ use std::sync::Mutex;
 use tokio::sync::broadcast;
 use tokio_stream::{Stream, StreamExt};
 use bytes::Bytes;
+use crate::persistence::aof::propagate_aof;
 
 /// 定义一个类型别名 Messages，表示一个动态的异步流。
 /// 这个异步流用于处理字节数据（Bytes），并且可以跨线程安全地传递。
@@ -90,20 +91,66 @@ impl Db {
     /// 设置键值并可指定过期时间（单位：毫秒）
     /// Set the key-value pair with an optional expiration time (in milliseconds).
     pub fn set(&mut self, key: &str, value: DbType, expiration_ms: Option<u64>) {
-        let expiration_time = expiration_ms.map(|ms| {
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap();
-            // 直接计算毫秒级过期时间戳
-            // Directly compute the expiration timestamp in milliseconds.
-            now.as_millis() as u64 + ms
-        });
+        let expiration_time = self.calculate_expiration(expiration_ms);
+
         let entry = DbEntry {
             value,
             expiration: expiration_time,
         };
 
+        // 传播到 AOF
+        self.propagate_aof_if_needed(key, &entry);
+
+        // 存储数据
         self.storage.insert(key.to_string(), entry);
+    }
+
+    /// 设置键值并不传播到 AOF
+    /// Set the key-value pair without propagating to AOF.
+    pub fn set_without_aof(&mut self, key: &str, value: DbType, expiration_ms: Option<u64>) {
+        let expiration_time = self.calculate_expiration(expiration_ms);
+
+        let entry = DbEntry {
+            value,
+            expiration: expiration_time,
+        };
+
+        // 存储数据
+        self.storage.insert(key.to_string(), entry);
+    }
+
+    /// 计算过期时间戳
+    /// Calculate expiration timestamp in milliseconds.
+    fn calculate_expiration(&self, expiration_ms: Option<u64>) -> Option<u64> {
+        expiration_ms.map(|ms| {
+            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+            now.as_millis() as u64 + ms
+        })
+    }
+
+    /// 传播到 AOF，如果需要的话
+    /// Propagate to AOF if needed.
+    fn propagate_aof_if_needed(&self, key: &str, entry: &DbEntry) {
+        match &entry.value {
+            DbType::String(value) => {
+                let args = vec![key.to_string(), value.to_string()];
+                let args_with_expiration = entry.expiration.map(|exp| {
+                    let mut args = args.clone();
+                    args.push(exp.to_string());
+                    args
+                });
+
+                // 传播 AOF：有过期时间时带上过期时间
+                if let Some(args_with_exp) = args_with_expiration {
+                    propagate_aof("set".to_string(), args_with_exp);
+                } else {
+                    propagate_aof("set".to_string(), args);
+                }
+            }
+            _ => {
+                // 其他类型在各自command里面处理
+            }
+        }
     }
 
     /// 获取键值，如果已过期则返回 None、惰性删除（Lazy Deletion）

@@ -1,8 +1,10 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
+use libc::atexit;
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
+use crate::persistence::aof::propagate_aof;
 
 /// Represents the `LPOP` command in a Redis-like system.
 ///
@@ -52,6 +54,8 @@ impl Lpop {
                     // 如果键存在并且是列表类型，删除并返回第一个元素。
                     Some(DbType::List(list)) => {
                         if let Some(value) = list.pop_front() {
+                            let ars = vec![lpop.key.clone()];
+                            propagate_aof("lpop".to_string(), ars);
                             Ok(Frame::Bulk(value.into_bytes()))
                         } else {
                             // If the list is empty, return nil.

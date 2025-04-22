@@ -1,44 +1,39 @@
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use crate::db::Db;
 use crate::frame::Frame;
 use crate::parse::Parse;
+use crate::persistence::aof::propagate_aof;
 
-/// `Del` command for string type.
-/// `Del` 命令用于字符串类型。
-///
-/// Deletes the specified keys and returns the number of keys that were deleted.
-/// 删除指定的多个键，返回成功删除的键的数量
+/// `Del` command for deleting keys.
+/// `Del` 命令用于删除键。
 pub struct Del {
     keys: Vec<String>,  // List of keys to be deleted. / 要删除的键的列表
 }
 
 impl Del {
-    /// Executes the `del` command.
-    /// 执行 `del` 命令。
+    /// Executes the `DEL` command to delete the specified keys.
+    /// 执行 `DEL` 命令删除指定的键。
     ///
     /// # Arguments
-    /// # 参数
     /// - `db`: Shared reference to the database for access. / 用于访问数据库的共享引用。
     /// - `parse`: For parsing the command from the client. / 用于解析客户端传来的命令。
     ///
     /// # Return
-    /// # 返回
     /// Returns the number of keys that were deleted. / 返回成功删除的键的数量。
-    pub fn del_command(
-        db: &mut Arc<Mutex<Db>>,
-        parse: &mut Parse
-    ) -> crate::Result<Frame> {
+    pub fn del_command(db: &mut Arc<Mutex<Db>>, parse: &mut Parse) -> crate::Result<Frame> {
         match Del::parse_command(parse) {
             Ok(del) => {
                 let mut db = db.lock().unwrap();
                 let mut deleted_count = 0;
 
-                // Iterate through all the keys and try to delete them
+                // Iterate through all the keys and attempt to delete them
                 // 遍历所有键，尝试删除它们
                 for key in del.keys {
                     if db.del(&key) {
-                        deleted_count += 1;  // If the key is deleted, increment the count / 如果键被删除，增加计数
+                        // Propagate AOF for each deletion
+                        // 删除后传播到 AOF
+                        Del::propagate_aof("del", &key);
+                        deleted_count += 1;  // Increment the count of deleted keys / 增加删除的键计数
                     }
                 }
 
@@ -47,28 +42,25 @@ impl Del {
                 Ok(Frame::Integer(deleted_count))
             }
             Err(_) => {
-                // If parsing fails, return an error message
-                // 如果命令解析失败，返回错误信息
+                // Return error if parsing fails / 解析失败时返回错误
                 Ok(Frame::Error("ERR wrong number of arguments for 'del' command".to_string()))
             }
         }
     }
 
-    /// Validates the command and retrieves the parameters.
-    /// 验证命令是否合法，并获取命令参数。
+    /// Parses the `DEL` command and retrieves the keys to delete.
+    /// 解析 `DEL` 命令并获取要删除的键。
     ///
     /// # Arguments
-    /// # 参数
     /// - `parse`: The `Parse` instance used to parse the command. / 用于解析命令的 `Parse` 实例。
     ///
     /// # Return
-    /// # 返回
     /// Returns the parsed `Del` instance containing the keys to delete. / 返回解析后的 `Del` 实例，包含要删除的键。
     fn parse_command(parse: &mut Parse) -> crate::Result<Self> {
         let mut keys = Vec::new();
 
-        // Keep parsing until there are no more keys
-        // 一直到没有更多的键为止
+        // Parse all keys until no more keys are available
+        // 解析所有键，直到没有更多键
         while let Ok(key) = parse.next_string() {
             keys.push(key);
         }
@@ -78,10 +70,16 @@ impl Del {
         if keys.is_empty() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                "ERR wrong number of arguments for 'del' command"
+                "ERR wrong number of arguments for 'del' command",
             )));
         }
 
         Ok(Del { keys })
+    }
+
+    /// Propagates the `DEL` command to AOF.
+    /// 将 `DEL` 命令传播到 AOF。
+    fn propagate_aof(command: &str, key: &str) {
+        propagate_aof(command.to_string(), vec![key.to_string()]);
     }
 }

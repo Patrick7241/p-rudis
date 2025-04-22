@@ -55,8 +55,6 @@ impl Append {
                 // 设置或更新键的值
                 db.set(&append.key, DbType::String(new_value.clone()), None);
 
-                // 存储方面，append和set一样，使用set便于合并
-                propagate_aof("set".to_string(), vec![append.key.clone(), append.value.clone()]);
 
                 // Return the length of the new string
                 // 返回追加后的新值的长度

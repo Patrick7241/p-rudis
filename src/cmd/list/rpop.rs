@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
+use crate::persistence::aof::propagate_aof;
 
 /// Represents the `RPOP` command in a Redis-like system.
 ///
@@ -52,6 +53,8 @@ impl Rpop {
                     // 如果键存在并且是列表类型，移除列表的最后一个元素并返回它。
                     Some(DbType::List(list)) => {
                         if let Some(value) = list.pop_back() {
+                            let args= vec![rpop.key.clone()];
+                            propagate_aof("rpop".to_string(),args);
                             Ok(Frame::Bulk(value.into_bytes())) // Return the last element.
                         } else {
                             Ok(Frame::Null) // Return nil if the list is empty.

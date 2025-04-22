@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
+use crate::persistence::aof::propagate_aof;
 
 /// Represents the `RPUSH` command in a Redis-like system.
 ///
@@ -51,9 +52,12 @@ impl Rpush {
                     // If the key exists and is a list, insert the values at the tail of the list.
                     // 如果键存在并且是列表类型，将值插入列表尾部。
                     Some(DbType::List(list)) => {
+                        let mut args= vec![rpush.key.to_string()];
                         for value in rpush.values.iter() {
+                            args.push(value.to_string());
                             list.push_back(value.to_string());
                         }
+                        propagate_aof("rpush".to_string(), args);
                         Ok(Frame::Integer(list.len() as i64))
                     }
                     // If the key exists but is not a list, return an error.
@@ -65,9 +69,12 @@ impl Rpush {
                     // 如果键不存在，创建一个新的列表并插入值。
                     None => {
                         let mut list = VecDeque::new();
+                        let mut args = vec![rpush.key.to_string()];
                         for value in rpush.values.iter() {
+                            args.push(value.to_string());
                             list.push_back(value.to_string());
                         }
+                        propagate_aof("rpush".to_string(), args);
                         let len = list.len();
                         db.set(rpush.key.as_str(), DbType::List(list), None);
                         Ok(Frame::Integer(len as i64))

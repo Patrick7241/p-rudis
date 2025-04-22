@@ -55,13 +55,12 @@ impl Set {
 
                 // 如果设置了过期时间，则将过期时间添加到命令参数中
                 if let Some(exp) = set.expiration {
-                    // 假设我们使用 PX（毫秒）
-                    args.push("PX".to_string());
+                    // PX（毫秒）
                     args.push(exp.to_string());
                 }
 
                 // 调用 propagate_aof 并传递参数
-                propagate_aof("set".to_string(), args);
+                // propagate_aof("set".to_string(), args);
 
                 // Return success response
                 // 返回成功响应

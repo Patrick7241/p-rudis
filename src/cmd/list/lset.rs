@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::db::{Db, DbType};
 use crate::frame::Frame;
 use crate::parse::Parse;
+use crate::persistence::aof::propagate_aof;
 
 /// Represents the `LSET` command in a Redis-like system.
 ///
@@ -56,6 +57,8 @@ impl Lset {
                             // 如果索引超出范围，返回错误。
                             Ok(Frame::Error("ERR index out of range".to_string()))
                         } else {
+                            let args = vec![lset.key.clone(), lset.index.to_string(), lset.value.clone()];
+                            propagate_aof("lset".to_string(),args);
                             list[lset.index as usize] = lset.value;
                             Ok(Frame::Simple("OK".to_string()))
                         }

@@ -73,7 +73,7 @@ pub async fn run(listener: TcpListener, shutdown: impl Future) {
     select! {
         res = listener.run() => {
             if let Err(err) = res {
-                error!("监听出错: {}", err)  // Error listening
+                error!("错误: {}", err)  // Error listening
             }
         },
         _ = shutdown => {
@@ -86,9 +86,11 @@ impl Listener {
     /// 启动监听
     /// Start listening
     async fn run(&mut self) -> Result<(), Error> {
-        if let Err(err) = load_aof(&mut self.db_holder.get_db(),"test.aof").await {
-            error!("加载 AOF 数据失败: {}", err);  // Error loading AOF file
-            return Err(err);
+        if let Ok((time, _)) = load_aof(&mut self.db_holder.get_db(), "test.aof").await {
+            // 成功加载 AOF 数据后处理
+           info!("加载 AOF 数据花费时间: {} 毫秒", time);
+        } else {
+            error!("加载 AOF 数据失败");
         }
         loop {
             // 接收连接
