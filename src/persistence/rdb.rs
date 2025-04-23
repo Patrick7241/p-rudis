@@ -193,10 +193,10 @@ pub async fn dump(db: &Arc<Mutex<Db>>, rdb_file_path: &str) -> RdbWriter {
     rdb
 }
 
-pub fn save(db: Arc<Mutex<Db>>, rdb_file_path: String) -> io::Result<()> {
+pub fn save(db: Arc<Mutex<Db>>, rdb_file_path: String,duration_secs: u64) -> io::Result<()> {
     tokio::spawn(async move {
         loop {
-            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(duration_secs)).await;
 
             let mut rdb = dump(&db, &rdb_file_path).await;
             let mut file = rdb.file.lock().unwrap();

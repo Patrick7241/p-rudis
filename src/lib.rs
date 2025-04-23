@@ -11,6 +11,7 @@ pub mod dict;
 pub mod parse;
 pub mod cmd;
 pub mod persistence;
+pub mod config;
 
 /// 定义错误返回类型
 /// This defines a custom result type that can be used throughout the application.

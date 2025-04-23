@@ -77,7 +77,7 @@ impl Db {
         };
         // 开启定时任务，定时处理过期的键值
         // Start a periodic task to clean up expired keys.
-        tokio::spawn(periodic_cleanup(db.clone(), Duration::from_secs(1024)));
+        tokio::spawn(periodic_cleanup(db.clone(), Duration::from_secs(60)));
         db
     }
     pub fn iter(&self) -> impl Iterator<Item = (&String, &DbEntry)> {

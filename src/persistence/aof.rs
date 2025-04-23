@@ -6,6 +6,7 @@ use std::thread::sleep;
 use std::time::Instant;
 use lazy_static::lazy_static;
 use log::{info, error};
+use crate::config::get_aof_config;
 use crate::db::{Db, DbType};
 use crate::persistence::aof_command::{handle_del_command, handle_hdel_command, handle_hset_command, handle_lpop_command, handle_lpush_command, handle_lrem_command, handle_lset_command, handle_rpop_command, handle_rpush_command, handle_set_command};
 
@@ -76,6 +77,10 @@ impl AofWriter {
 }
 
 pub fn propagate_aof(command: String, args: Vec<String>) {
+    let aof_config=get_aof_config();
+    if !aof_config.enabled {
+        return;
+    }
     let writer = AOF_WRITER.clone(); // 克隆 Arc 指针
 
     let writer = writer.lock().unwrap(); // 获取锁
@@ -101,8 +106,9 @@ pub fn flush(aof: &mut AofWriter) -> Result<(), std::io::Error> {
 
 /// Flush the AOF buffer periodically based on time or external trigger
 pub async fn periodic_flush(mut aof: AofWriter) {
+    let aof_config=get_aof_config();
     loop {
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(aof_config.appendfsync)).await;
         if let Err(e) = flush(&mut aof) {
             error!("Error flushing AOF file: {}", e);
         }

@@ -1,0 +1,12 @@
+[aof]
+enabled = true            # 是否启用AOF
+appendfsync = 1           # AOF的写入间隔，单位：秒
+file_path = "test.aof"    # AOF文件存储位置
+
+[rdb]
+enabled = true            # 是否启用RDB
+save_interval = 3600      # RDB保存间隔时间（秒）
+file_path = "dump.rdb"    # RDB文件存储位置
+
+[server]
+address = "127.0.0.1:6379"     # 服务端地址
