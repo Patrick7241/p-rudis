@@ -9,11 +9,12 @@ use tokio::select;
 use tokio::sync::broadcast;
 use crate::{cmd, dict, frame, parse};
 use crate::connection::ConnectionHandler;
-use crate::db::{Db, DbHolder};
+use crate::db::{ Db, DbHolder};
 use crate::shutdown::Shutdown;
 use crate::dict::Command;
 use crate::frame::Frame;
 use crate::persistence::aof::load_aof;
+use crate::persistence::rdb::{dump, load_rdb, save, RdbWriter};
 
 #[derive(Debug)]
 pub struct Listener {
@@ -92,6 +93,20 @@ impl Listener {
         } else {
             error!("加载 AOF 数据失败");
         }
+       match RdbWriter::load_file("dump.rdb").await{
+           Ok(mut rdb)=>{
+               if let Ok((time, _))= load_rdb(&mut self.db_holder.get_db(),&mut rdb).await{
+                   info!("加载 rdb 数据花费时间: {} 毫秒", time);
+               } else {
+                   error!("加载 rdb 数据失败");
+               }
+           }
+           Err(_)=>{
+               error!("rdb文件为空");
+           }
+       }
+        // 保存的定时任务
+        save(self.db_holder.get_db(), "dump.rdb".to_string())?;
         loop {
             // 接收连接
             // Accept a connection

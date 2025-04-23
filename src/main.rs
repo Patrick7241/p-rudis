@@ -5,14 +5,6 @@ use p_rudis::log;
 use p_rudis::dict;
 use p_rudis::server;
 
-
-// TODO 消灭unwrap
-// TODO 发布订阅模式，基于内存，无存储（可另作存储拓展）
-// TODO persistence 持久化存储
-// TODO 剩余基本数据结构指令
-// TODO 配置文件启动，参数启动
-
-
 // 目前只编写并启用服务端
 #[tokio::main]
 async fn main()->Result<()> {

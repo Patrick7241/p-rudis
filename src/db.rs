@@ -1,4 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fs::File;
+use std::io;
+use std::io::Write;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -22,7 +25,6 @@ pub(crate) type Messages = Pin<Box<dyn Stream<Item = Bytes> + Send>>;
 pub struct DbHolder {
     db: Arc<Mutex<Db>>,
 }
-
 #[derive(Clone, Debug)]
 pub struct Db {
     storage: HashMap<String, DbEntry>,
@@ -38,10 +40,10 @@ pub struct Db {
 pub struct DbEntry {
     /// 基本数据结构的数据类型
     /// The data type of the basic structure.
-    value: DbType,
+    pub(crate)  value: DbType,
     /// 存储过期时间，单位 毫秒
     /// The expiration time of the entry, in milliseconds.
-    expiration: Option<u64>,
+    pub(crate) expiration: Option<u64>,
 }
 
 #[derive(Clone, Debug)]
@@ -49,9 +51,9 @@ pub enum DbType {
     String(String),
     Hash(HashMap<String, String>),
     List(VecDeque<String>),
-    Set(HashSet<String>),
-    ZSet(String),  // 有序集合
-    BitMap(String), // 位图
+    // Set(HashSet<String>),
+    // ZSet(String),  // 有序集合
+    // BitMap(String), // 位图
 }
 
 impl DbHolder {
@@ -77,6 +79,9 @@ impl Db {
         // Start a periodic task to clean up expired keys.
         tokio::spawn(periodic_cleanup(db.clone(), Duration::from_secs(1024)));
         db
+    }
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &DbEntry)> {
+        self.storage.iter()
     }
 
     /// 获取DbType的可变引用
@@ -267,8 +272,6 @@ impl Db {
 /// 定期删除（Active Expiration）
 /// Active expiration: a task to periodically clean up expired keys.
 async fn periodic_cleanup(mut db: Db, interval: Duration) {
-    // TODO 待添加，停止条件
-    // TODO: Add stop condition.
     loop {
         cleanup_expired(&mut db);
         tokio::time::sleep(interval).await;
