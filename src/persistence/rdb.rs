@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 use crate::db::{Db, DbEntry, DbType};
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, BytesMut};
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufWriter, Read, Seek, SeekFrom, Write};

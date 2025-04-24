@@ -11,10 +11,13 @@ use crate::db::{Db, DbType};
 use crate::persistence::aof_command::{handle_del_command, handle_hdel_command, handle_hset_command, handle_lpop_command, handle_lpush_command, handle_lrem_command, handle_lset_command, handle_rpop_command, handle_rpush_command, handle_set_command};
 
 lazy_static! {
-    static ref AOF_WRITER: Arc<Mutex<AofWriter>> = Arc::new(Mutex::new(AofWriter::new("test.aof").unwrap_or_else(|e| {
-        error!("Failed to create AOF Writer: {}", e);
-        std::process::exit(1);
-    })));
+    static ref AOF_WRITER: Arc<Mutex<AofWriter>> = {
+        let aof_config = get_aof_config();
+        Arc::new(Mutex::new(AofWriter::new(aof_config.file_path.as_str()).unwrap_or_else(|e| {
+            error!("Failed to create AOF Writer: {}", e);
+            std::process::exit(1);
+        })))
+    };
 }
 
 #[derive(Debug, Clone)]
