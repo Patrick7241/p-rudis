@@ -2,11 +2,6 @@
 
 > **Language Switch**: [中文](README.md) | [English](README_EN.md)
 
-## Before You Start 📝
-- The project is still under development, feel free to give it a ⭐star⭐ if you're interested! Most features are expected to be completed after May Day.
-- This project is for learning and experimental purposes only, **do not use it in production environments**. 💡
-- All code comments are bilingual (Chinese and English) to make it easier for developers to understand and contribute. 🌍
-
 ## Project Introduction 📚
 
 `p-rudis` is a lightweight key-value database written in **Rust**, implementing the Redis **RESP protocol**. It aims to provide an efficient and reliable in-memory storage solution. The goal of the project is to create a simple server that can interact with clients using a Redis-like protocol, supporting basic key-value operations and the publish/subscribe pattern. Although `p-rudis` does not yet have all the features of Redis, it has already implemented many core commands and protocols, making it suitable for learning, experimentation, or small-scale applications. ⚡️
